@@ -10,7 +10,9 @@ import pandas as pd
 from filesplit.split import Split
 
 DATASET: str = "./dataset/beeradvocate.json"
-LINES_PER_CHUNK: int = 400_000
+# LINES_PER_CHUNK: int = 400_000
+LINES_PER_CHUNK: int = 500_000
+
 LOGGER: Logger = logging.getLogger(__name__)
 
 
@@ -20,7 +22,7 @@ async def create_processed_dataframe(file: str) -> pd.DataFrame:
     with open(f"./dataset/chunks/{file}") as f:
         for line in f:
             counter += 1
-            if counter == 200:
+            if counter == 50:
                 break
             LOGGER.info(f"reading line: {counter} --- {line[0:150]}...")
             dataset_json = ast.literal_eval(line)
@@ -50,7 +52,7 @@ def extract_keys_from_dataset(dataset: dict) -> dict:
                  "taste": float(dataset["review/taste"]),
                  "overall": float(dataset["review/overall"]), "text": str(dataset["review/text"]),
                  "time": int(dataset["review/time"]),
-                 "profile_name": str(dataset["review/profileName"]), "processed_text": ""}
+                 "profile_name": str(dataset["review/profileName"]), "processed_text": []}
     return res
 
 
