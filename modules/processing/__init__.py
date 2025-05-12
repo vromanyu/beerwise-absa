@@ -1,0 +1,3 @@
+from modules.processing.processor import download_required_nltk_packages
+
+download_required_nltk_packages()
