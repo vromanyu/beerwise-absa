@@ -54,6 +54,9 @@ def handle_pre_processing(text: str) -> list[str]:
     lemmatized_tokens = [str(wordnet_lemmatizer.lemmatize(token)) for token in tokens_with_no_punctuation]
     return lemmatized_tokens
 
+def aspect_extraction(df: pd.DataFrame) -> None:
+
+
 
 async def pre_process_reviews(df: pd.DataFrame) -> pd.DataFrame:
     df["processed_text"] = df["text"].apply(handle_pre_processing)

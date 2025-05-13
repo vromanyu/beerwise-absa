@@ -29,7 +29,9 @@ def vader(df: pd.DataFrame) -> None:
 
 def main():
     pass
-    # df: pd.DataFrame = load_dataframe(f"{DATASET}")
+    df: pd.DataFrame = load_dataframe(f"{DATASET}")
+    print(df.iloc[0]["processed_text"])
+    # print(df)
     # df = create_recommended_column(df)
     # X = df["processed_text"].astype(str)
     # y = df["recommended"]
