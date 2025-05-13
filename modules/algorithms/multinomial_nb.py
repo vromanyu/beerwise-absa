@@ -6,31 +6,30 @@ import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
-from sklearn.metrics import (accuracy_score, classification_report,confusion_matrix)
+from sklearn.metrics import (
+    accuracy_score, classification_report, confusion_matrix)
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
-import nltk
+import spacy
 
-DATASET: str = "../../dataset/sample_dataset_as_excel.xlsx"
+DATASET: str = "./dataset/sample_dataset_as_excel.xlsx"
 
 
 def load_dataframe(file: str) -> pd.DataFrame:
     df = pd.read_excel(file)
     df["processed_text"] = df["processed_text"].apply(literal_eval)
+    # df["extracted_aspects"] = df["extracted_aspects"].apply(literal_eval)
     return df
+
 
 def create_recommended_column(df: pd.DataFrame) -> pd.DataFrame:
-    df["recommended"] = df["overall"].apply(lambda value: 1 if value > 3 else 0)
+    df["recommended"] = df["overall"].apply(
+        lambda value: 1 if value > 3 else 0)
     return df
 
-def vader(df: pd.DataFrame) -> None:
-    analyzer = SentimentIntensityAnalyzer()
-    df["text"].apply(lambda sent: print(analyzer.polarity_scores(sent)))
 
-
-def main():
-    pass
+def main(df: pd.DataFrame) -> None:
     df: pd.DataFrame = load_dataframe(f"{DATASET}")
-    print(df.iloc[0]["processed_text"])
+    # aspect_extraction(df)
     # print(df)
     # df = create_recommended_column(df)
     # X = df["processed_text"].astype(str)
@@ -81,7 +80,6 @@ def main():
     # dictionary = {}
     # doc_num = 1
     # for doc_words in
-
 
     # print(df["unique_tokens"])
 

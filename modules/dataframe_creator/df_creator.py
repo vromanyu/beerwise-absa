@@ -4,14 +4,15 @@ import logging
 import time
 import os
 from logging import Logger
-from modules.processing.processor import handle_pre_processing
+from modules.processing.processor import handle_pre_processing, handle_aspect_extraction
+from ast import literal_eval
 
 import pandas as pd
 from filesplit.split import Split
 
 DATASET: str = "./dataset/beeradvocate.json"
 # LINES_PER_CHUNK: int = 400_000
-LINES_PER_CHUNK: int = 500_000
+LINES_PER_CHUNK: int = 1_000_000
 
 LOGGER: Logger = logging.getLogger(__name__)
 
@@ -22,7 +23,7 @@ async def create_processed_dataframe(file: str) -> pd.DataFrame:
     with open(f"./dataset/chunks/{file}") as f:
         for line in f:
             counter += 1
-            if counter == 50:
+            if counter == 5:
                 break
             LOGGER.info(f"reading line: {counter} --- {line[0:150]}...")
             dataset_json = ast.literal_eval(line)
@@ -32,14 +33,22 @@ async def create_processed_dataframe(file: str) -> pd.DataFrame:
             try:
                 data_json_transform = extract_keys_from_dataset(dataset_json)
                 json_df = pd.DataFrame([data_json_transform])
-                json_df["processed_text"] = json_df["text"].apply(handle_pre_processing)
+                json_df["processed_text"] = json_df["text"].apply(
+                    handle_pre_processing)
+                print(json_df.iloc[0])
+                json_df["extracted_aspects"] = json_df["processed_text"].apply(
+                    lambda x: print(type(x)))
                 result = pd.concat([result, json_df], ignore_index=True)
             except KeyError:
-                LOGGER.error(f"error processing line: {counter} --- dataset: {dataset_json}")
+                LOGGER.error(
+                    f"error processing line: {counter} --- dataset: {dataset_json}")
                 continue
             except ValueError:
-                LOGGER.error(f"error converting at line: {counter} ---- dataset: {dataset_json}")
+                LOGGER.error(
+                    f"error converting at line: {counter} ---- dataset: {dataset_json}")
                 continue
+            except Exception:
+                LOGGER.error(Exception)
     return result
 
 
@@ -52,7 +61,7 @@ def extract_keys_from_dataset(dataset: dict) -> dict:
                  "taste": float(dataset["review/taste"]),
                  "overall": float(dataset["review/overall"]), "text": str(dataset["review/text"]),
                  "time": int(dataset["review/time"]),
-                 "profile_name": str(dataset["review/profileName"]), "processed_text": []}
+                 "profile_name": str(dataset["review/profileName"]), "processed_text": [], "extracted_aspects": []}
     return res
 
 
@@ -77,14 +86,13 @@ async def async_main():
     chunk_files = os.listdir("./dataset/chunks")
     tasks: list = []
     for chunk_file in chunk_files:
-        tasks.append(asyncio.create_task(create_processed_dataframe(chunk_file)))
+        tasks.append(asyncio.create_task(
+            create_processed_dataframe(chunk_file)))
     await asyncio.gather(*tasks, return_exceptions=True)
     return tasks
 
 
 def generate_processed_dataframe():
-    start = time.time()
     res = asyncio.run(async_main())
-    LOGGER.info(f"calculation took: ${(time.time() - start) // 60} minutes")
     remove_chunks()
     return [res.result() for res in res]

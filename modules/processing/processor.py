@@ -8,13 +8,13 @@ import unicodedata as uni
 from nltk import WordNetLemmatizer
 from nltk.corpus import stopwords
 from spellchecker import SpellChecker
+import spacy
 
 
 def download_required_nltk_packages() -> None:
     nltk.download("stopwords")
     nltk.download('punkt_tab')
     nltk.download('wordnet')
-    nltk.download('vader_lexicon')
 
 
 def drop_missing_values(df: pd.DataFrame) -> None:
@@ -42,22 +42,43 @@ def handle_spellchecking(text: str) -> str:
 def handle_pre_processing(text: str) -> list[str]:
     punctuations: list = list(string.punctuation)
     lower_text: str = text.lower()
-    remove_numbers: str = "".join([word for word in lower_text if not word.isdigit()])
-    escape_characters_and_urls_removed: str = remove_numbers.replace(r"\t", " ").replace(r"\n", " ").replace(r"http\S+", "").replace("\"", "").strip()
-    normalized_text: str = uni.normalize("NFKD", escape_characters_and_urls_removed)
+    remove_numbers: str = "".join(
+        [word for word in lower_text if not word.isdigit()])
+    escape_characters_and_urls_removed: str = remove_numbers.replace(
+        r"\t", " ").replace(r"\n", " ").replace(r"http\S+", "").replace("\"", "").strip()
+    normalized_text: str = uni.normalize(
+        "NFKD", escape_characters_and_urls_removed)
     emojis_removed: str = handle_emojis(normalized_text)
     spellchecked: str = handle_spellchecking(emojis_removed)
     tokens = nltk.word_tokenize(spellchecked)
-    tokens_with_no_stopwords = [str(token) for token in tokens if token not in set(stopwords.words("english"))]
-    tokens_with_no_punctuation = [str(token) for token in tokens_with_no_stopwords if token not in punctuations]
+    tokens_with_no_stopwords = [
+        str(token) for token in tokens if token not in set(stopwords.words("english"))]
+    tokens_with_no_punctuation = [
+        str(token) for token in tokens_with_no_stopwords if token not in punctuations]
     wordnet_lemmatizer = WordNetLemmatizer()
-    lemmatized_tokens = [str(wordnet_lemmatizer.lemmatize(token)) for token in tokens_with_no_punctuation]
+    lemmatized_tokens = [str(wordnet_lemmatizer.lemmatize(token))
+                         for token in tokens_with_no_punctuation]
     return lemmatized_tokens
 
-def aspect_extraction(df: pd.DataFrame) -> None:
 
+def handle_aspect_extraction(tokens: list[str]) -> list[str]:
+    nlp = spacy.load("en_core_web_sm")
+    extracted_aspects: list[str] = []
+    processed_token_string = " ".join(tokens)
+    include_tag: str = "NN"
+    exclude_shapes: list[str] = ["x", "xx", "xxx"]
+    try:
+        doc = nlp(processed_token_string)
+        for token in doc:
+            if token.tag_ == include_tag and token.shape_ not in exclude_shapes:
+                extracted_aspects.append(token.lemma_)
+    except:
+        print("EXCEPTION!")
+        return extracted_aspects
 
 
 async def pre_process_reviews(df: pd.DataFrame) -> pd.DataFrame:
     df["processed_text"] = df["text"].apply(handle_pre_processing)
+    df["extracted_aspects"] = df["processed_text"].apply(
+        handle_aspect_extraction)
     return df
