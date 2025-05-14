@@ -11,10 +11,11 @@ from spellchecker import SpellChecker
 import spacy
 
 
-def download_required_nltk_packages() -> None:
+def download_required_runtime_packages() -> None:
     nltk.download("stopwords")
     nltk.download('punkt_tab')
     nltk.download('wordnet')
+    spacy.cli.download("en_core_web_sm")
 
 
 def drop_missing_values(df: pd.DataFrame) -> None:
