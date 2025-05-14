@@ -1,3 +1,5 @@
+import os
+
 import pandas as pd
 from ast import literal_eval
 import numpy as np
@@ -10,14 +12,19 @@ from sklearn.metrics import (
     accuracy_score, classification_report, confusion_matrix)
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import spacy
+from sklearn.metrics.pairwise import cosine_similarity
+from collections import Counter
+# from gens
 
-DATASET: str = "./dataset/sample_dataset_as_excel.xlsx"
+import modules.dataframe_creator.df_creator
+
+DATASET: str = "../../dataset/dataset_as_excel_mandatory_rows.xlsx"
 
 
-def load_dataframe(file: str) -> pd.DataFrame:
-    df = pd.read_excel(file)
+def load_pre_processed_dataset(dataset: str) -> pd.DataFrame:
+    df: pd.DataFrame = pd.read_excel(dataset)
     df["processed_text"] = df["processed_text"].apply(literal_eval)
-    # df["extracted_aspects"] = df["extracted_aspects"].apply(literal_eval)
+    df["extracted_aspects"] = df["extracted_aspects"].apply(literal_eval)
     return df
 
 
@@ -27,8 +34,16 @@ def create_recommended_column(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def main(df: pd.DataFrame) -> None:
-    df: pd.DataFrame = load_dataframe(f"{DATASET}")
+def main() -> None:
+    df: pd.DataFrame = load_pre_processed_dataset(DATASET)
+    first_row: pd.Series = df.iloc[0]
+    aspects: np.ndarray = np.unique(np.array(first_row["extracted_aspects"]))
+    categories: np.ndarray = np.array(["appearance", "aroma", "taste", "overall"])
+    print(cosine_similarity(aspects, categories))
+    for aspect in aspects.tolist():
+        for category in categories.tolist():
+            print(cosine_similarity([Counter(aspect)], [Counter(category)]))
+
     # aspect_extraction(df)
     # print(df)
     # df = create_recommended_column(df)

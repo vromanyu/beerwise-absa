@@ -12,7 +12,7 @@ from modules.processing.processor import handle_pre_processing, handle_aspect_ex
 DATASET: str = "./dataset/beeradvocate.json"
 DATASET_EXCEL_WITH_ALL_ROWS: str = "./dataset/dataset_as_excel_all_rows.xlsx"
 DATASET_EXCEL_WITH_MANDATORY_ROWS: str = "./dataset/dataset_as_excel_mandatory_rows.xlsx"
-LINES_PER_CHUNK: int = 1_000_000
+LINES_PER_CHUNK: int = 400_000
 LOGGER: Logger = logging.getLogger(__name__)
 
 
@@ -53,7 +53,7 @@ async def create_processed_dataframe_with_mandatory_rows(file: str) -> pd.DataFr
     with open(f"./dataset/chunks/{file}") as f:
         for line in f:
             counter += 1
-            if counter == 5:
+            if counter == 2:
                 break
             LOGGER.info(f"reading line: {counter} --- {line[0:150]}...")
             dataset_json = ast.literal_eval(line)

@@ -1,3 +1,3 @@
-from modules.processing.processor import download_required_nltk_packages
+from modules.processing.processor import download_required_runtime_packages
 
-download_required_nltk_packages()
+download_required_runtime_packages()
