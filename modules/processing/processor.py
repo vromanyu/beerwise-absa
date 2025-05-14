@@ -68,18 +68,8 @@ def handle_aspect_extraction(tokens: list[str]) -> list[str]:
     processed_token_string = " ".join(tokens)
     include_tag: str = "NN"
     exclude_shapes: list[str] = ["x", "xx", "xxx"]
-    try:
-        doc = nlp(processed_token_string)
-        for token in doc:
-            if token.tag_ == include_tag and token.shape_ not in exclude_shapes:
-                extracted_aspects.append(token.lemma_)
-    except:
-        print("EXCEPTION!")
-        return extracted_aspects
-
-
-async def pre_process_reviews(df: pd.DataFrame) -> pd.DataFrame:
-    df["processed_text"] = df["text"].apply(handle_pre_processing)
-    df["extracted_aspects"] = df["processed_text"].apply(
-        handle_aspect_extraction)
-    return df
+    document = nlp(processed_token_string)
+    for token in document:
+        if token.tag_ == include_tag and token.shape_ not in exclude_shapes:
+            extracted_aspects.append(token.lemma_)
+    return extracted_aspects
