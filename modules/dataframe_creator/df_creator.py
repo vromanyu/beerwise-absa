@@ -151,3 +151,21 @@ def generate_processed_dataframe_chunks_with_all_rows():
     res = asyncio.run(async_dataframe_creator_with_all_rows())
     remove_chunks()
     return [res.result() for res in res]
+
+def main(all_rows: bool = False):
+    df: pd.DataFrame = pd.DataFrame()
+    dataframes: list = generate_processed_dataframe_chunks_with_all_rows() if all_rows else generate_processed_dataframe_chunks_with_mandatory_rows()
+    for dataframe in dataframes:
+        df = pd.concat([df, dataframe], ignore_index=True)
+    df.reset_index(inplace=True, drop=True)
+    export_dataframe_to_excel(DATASET_EXCEL_WITH_ALL_ROWS if all_rows else DATASET_EXCEL_WITH_MANDATORY_ROWS, df)
+
+if __name__ == "__main__":
+    choice: str = input("use all rows (y/n)?")
+    if choice.lower() == "y":
+        main(all_rows=True)
+    elif choice.lower() == "n":
+        main(all_rows=False)
+    else:
+        print("unknown option. using all rows.")
+        main(all_rows=True)
