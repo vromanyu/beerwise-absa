@@ -9,9 +9,9 @@ from filesplit.split import Split
 
 from modules.processing.processor import handle_pre_processing, handle_aspect_extraction
 
-DATASET: str = "./dataset/beeradvocate.json"
-DATASET_EXCEL_WITH_ALL_ROWS: str = "./dataset/dataset_as_excel_all_rows.xlsx"
-DATASET_EXCEL_WITH_MANDATORY_ROWS: str = "./dataset/dataset_as_excel_mandatory_rows.xlsx"
+DATASET: str = "../../dataset/beeradvocate.json"
+DATASET_EXCEL_WITH_ALL_ROWS: str = "../../dataset/dataset_as_excel_all_rows.xlsx"
+DATASET_EXCEL_WITH_MANDATORY_ROWS: str = "../../dataset/dataset_as_excel_mandatory_rows.xlsx"
 LINES_PER_CHUNK: int = 400_000
 LOGGER: Logger = logging.getLogger(__name__)
 
@@ -131,6 +131,7 @@ async def async_dataframe_creator_with_mandatory_rows():
     await asyncio.gather(*tasks, return_exceptions=True)
     return tasks
 
+
 async def async_dataframe_creator_with_all_rows():
     split_dataset_to_chunks()
     chunk_files = os.listdir("./dataset/chunks")
@@ -147,10 +148,12 @@ def generate_processed_dataframe_chunks_with_mandatory_rows():
     remove_chunks()
     return [res.result() for res in res]
 
+
 def generate_processed_dataframe_chunks_with_all_rows():
     res = asyncio.run(async_dataframe_creator_with_all_rows())
     remove_chunks()
     return [res.result() for res in res]
+
 
 def main(all_rows: bool = False):
     df: pd.DataFrame = pd.DataFrame()
@@ -160,8 +163,9 @@ def main(all_rows: bool = False):
     df.reset_index(inplace=True, drop=True)
     export_dataframe_to_excel(DATASET_EXCEL_WITH_ALL_ROWS if all_rows else DATASET_EXCEL_WITH_MANDATORY_ROWS, df)
 
+
 if __name__ == "__main__":
-    choice: str = input("use all rows (y/n)?")
+    choice: str = input("use all rows (y/n)? ")
     if choice.lower() == "y":
         main(all_rows=True)
     elif choice.lower() == "n":
