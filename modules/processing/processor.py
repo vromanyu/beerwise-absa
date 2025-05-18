@@ -1,5 +1,6 @@
 import re
 import string
+from ast import literal_eval
 
 import demoji
 import nltk
@@ -9,6 +10,8 @@ from nltk import WordNetLemmatizer
 from nltk.corpus import stopwords
 from spellchecker import SpellChecker
 import spacy
+
+DATASET: str = "../../dataset/dataset_as_excel_mandatory_rows.xlsx"
 
 
 def download_required_runtime_packages() -> None:
@@ -73,3 +76,10 @@ def handle_aspect_extraction(tokens: list[str]) -> list[str]:
         if token.tag_ == include_tag and token.shape_ not in exclude_shapes:
             extracted_aspects.append(token.lemma_)
     return extracted_aspects
+
+
+def load_pre_processed_dataset(dataset: str) -> pd.DataFrame:
+    df: pd.DataFrame = pd.read_excel(dataset)
+    df["processed_text"] = df["processed_text"].apply(literal_eval)
+    df["extracted_aspects"] = df["extracted_aspects"].apply(literal_eval)
+    return df
