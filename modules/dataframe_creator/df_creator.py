@@ -121,7 +121,7 @@ def export_dataframe_to_excel(excel_file_name: str, df: pd.DataFrame) -> None:
                 index=False, engine="openpyxl")
 
 
-async def async_dataframe_creator():
+async def async_dataframe_creator_with_mandatory_rows():
     split_dataset_to_chunks()
     chunk_files = os.listdir("./dataset/chunks")
     tasks: list = []
@@ -131,8 +131,23 @@ async def async_dataframe_creator():
     await asyncio.gather(*tasks, return_exceptions=True)
     return tasks
 
+async def async_dataframe_creator_with_all_rows():
+    split_dataset_to_chunks()
+    chunk_files = os.listdir("./dataset/chunks")
+    tasks: list = []
+    for chunk_file in chunk_files:
+        tasks.append(asyncio.create_task(
+            create_processed_dataframe_with_all_rows(chunk_file)))
+    await asyncio.gather(*tasks, return_exceptions=True)
+    return tasks
 
-def generate_processed_dataframe_chunks():
-    res = asyncio.run(async_dataframe_creator())
+
+def generate_processed_dataframe_chunks_with_mandatory_rows():
+    res = asyncio.run(async_dataframe_creator_with_mandatory_rows())
+    remove_chunks()
+    return [res.result() for res in res]
+
+def generate_processed_dataframe_chunks_with_all_rows():
+    res = asyncio.run(async_dataframe_creator_with_all_rows())
     remove_chunks()
     return [res.result() for res in res]
