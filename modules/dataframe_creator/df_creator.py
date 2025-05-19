@@ -7,12 +7,12 @@ from logging import Logger
 import pandas as pd
 from filesplit.split import Split
 
-from modules.processing.processor import handle_pre_processing, handle_aspect_extraction
+from modules.processing.processor import handle_pre_processing
 
 DATASET: str = "../../dataset/beeradvocate.json"
-DATASET_EXCEL_WITH_ALL_ROWS: str = "../../dataset/dataset_as_excel_all_rows.xlsx"
+DATASET_EXCEL_WITH_ALL_ROWS: str = "../../dataset/dataset_as_excel_all_rows_full.xlsx"
 DATASET_EXCEL_WITH_MANDATORY_ROWS: str = "../../dataset/dataset_as_excel_mandatory_rows.xlsx"
-LINES_PER_CHUNK: int = 400_000
+LINES_PER_CHUNK: int = 50_000
 LOGGER: Logger = logging.getLogger(__name__)
 
 
@@ -22,7 +22,7 @@ async def create_processed_dataframe_with_all_rows(file: str) -> pd.DataFrame:
     with open(f"./dataset/chunks/{file}") as f:
         for line in f:
             counter += 1
-            if counter == 5:
+            if counter == 1_000:
                 break
             LOGGER.info(f"reading line: {counter} --- {line[0:150]}...")
             dataset_json = ast.literal_eval(line)
@@ -30,11 +30,11 @@ async def create_processed_dataframe_with_all_rows(file: str) -> pd.DataFrame:
                 LOGGER.warning(f"parsed JSON at line {counter} was empty")
                 continue
             try:
-                data_json_transform = extract_all_keys_from_dataset(dataset_json)
+                data_json_transform = extract_mandatory_keys_from_dataset(dataset_json)
                 json_df = pd.DataFrame([data_json_transform])
                 json_df["processed_text"] = json_df["text"].apply(
                     handle_pre_processing)
-                json_df["extracted_aspects"] = json_df["processed_text"].apply(handle_aspect_extraction)
+                # json_df["extracted_aspects"] = json_df["processed_text"].apply(handle_aspect_extraction)
                 result = pd.concat([result, json_df], ignore_index=True)
             except KeyError:
                 LOGGER.error(
@@ -65,7 +65,7 @@ async def create_processed_dataframe_with_mandatory_rows(file: str) -> pd.DataFr
                 json_df = pd.DataFrame([data_json_transform])
                 json_df["processed_text"] = json_df["text"].apply(
                     handle_pre_processing)
-                json_df["extracted_aspects"] = json_df["processed_text"].apply(handle_aspect_extraction)
+                # json_df["extracted_aspects"] = json_df["processed_text"].apply(handle_aspect_extraction)
                 result = pd.concat([result, json_df], ignore_index=True)
             except KeyError:
                 LOGGER.error(
@@ -87,16 +87,20 @@ def extract_all_keys_from_dataset(dataset: dict) -> dict:
                  "taste": float(dataset["review/taste"]),
                  "overall": float(dataset["review/overall"]), "text": str(dataset["review/text"]),
                  "time": int(dataset["review/time"]),
-                 "profile_name": str(dataset["review/profileName"]), "processed_text": [], "extracted_aspects": []}
+                 "profile_name": str(dataset["review/profileName"]), "processed_text": []}
     return res
 
 
 def extract_mandatory_keys_from_dataset(dataset: dict) -> dict:
-    res: dict = {"appearance": float(dataset["review/appearance"]),
-                 "aroma": float(dataset["review/aroma"]), "palate": float(dataset["review/palate"]),
-                 "taste": float(dataset["review/taste"]),
-                 "overall": float(dataset["review/overall"]), "text": str(dataset["review/text"]),
-                 "processed_text": [], "extracted_aspects": []}
+    res: dict = {
+        "beer_id": str(dataset["beer/beerId"]),
+        "name": str(dataset["beer/name"]),
+        "appearance": float(dataset["review/appearance"]),
+        "aroma": float(dataset["review/aroma"]),
+        "palate": float(dataset["review/palate"]),
+        "taste": float(dataset["review/taste"]),
+        "overall": float(dataset["review/overall"]), "text": str(dataset["review/text"]),
+        "processed_text": []}
     return res
 
 
