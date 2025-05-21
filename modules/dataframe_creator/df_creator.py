@@ -10,19 +10,19 @@ from filesplit.split import Split
 from modules.processing.processor import handle_pre_processing
 
 DATASET: str = "../../dataset/beeradvocate.json"
-DATASET_EXCEL_WITH_ALL_ROWS: str = "../../dataset/dataset_as_excel_all_rows_full.xlsx"
-DATASET_EXCEL_WITH_MANDATORY_ROWS: str = "../../dataset/dataset_as_excel_mandatory_rows.xlsx"
-LINES_PER_CHUNK: int = 50_000
+OUTPUT: str = "../../dataset/dataset_portion_pre_processed.xlsx"
+CHUNKS: str = "../../dataset/chunks"
+LINES_PER_CHUNK: int = 500_000
 LOGGER: Logger = logging.getLogger(__name__)
 
 
-async def create_processed_dataframe_with_all_rows(file: str) -> pd.DataFrame:
+async def create_processed_dataframe(file: str, limit: int = 0) -> pd.DataFrame:
     result = pd.DataFrame()
     counter: int = 0
-    with open(f"./dataset/chunks/{file}") as f:
+    with open(f"{CHUNKS}/{file}") as f:
         for line in f:
             counter += 1
-            if counter == 1_000:
+            if limit == counter:
                 break
             LOGGER.info(f"reading line: {counter} --- {line[0:150]}...")
             dataset_json = ast.literal_eval(line)
@@ -30,11 +30,10 @@ async def create_processed_dataframe_with_all_rows(file: str) -> pd.DataFrame:
                 LOGGER.warning(f"parsed JSON at line {counter} was empty")
                 continue
             try:
-                data_json_transform = extract_mandatory_keys_from_dataset(dataset_json)
+                data_json_transform = extract_keys_from_dataset(dataset_json)
                 json_df = pd.DataFrame([data_json_transform])
                 json_df["processed_text"] = json_df["text"].apply(
                     handle_pre_processing)
-                # json_df["extracted_aspects"] = json_df["processed_text"].apply(handle_aspect_extraction)
                 result = pd.concat([result, json_df], ignore_index=True)
             except KeyError:
                 LOGGER.error(
@@ -61,11 +60,10 @@ async def create_processed_dataframe_with_mandatory_rows(file: str) -> pd.DataFr
                 LOGGER.warning(f"parsed JSON at line {counter} was empty")
                 continue
             try:
-                data_json_transform = extract_mandatory_keys_from_dataset(dataset_json)
+                data_json_transform = extract_keys_from_dataset(dataset_json)
                 json_df = pd.DataFrame([data_json_transform])
                 json_df["processed_text"] = json_df["text"].apply(
                     handle_pre_processing)
-                # json_df["extracted_aspects"] = json_df["processed_text"].apply(handle_aspect_extraction)
                 result = pd.concat([result, json_df], ignore_index=True)
             except KeyError:
                 LOGGER.error(
@@ -78,20 +76,7 @@ async def create_processed_dataframe_with_mandatory_rows(file: str) -> pd.DataFr
     return result
 
 
-def extract_all_keys_from_dataset(dataset: dict) -> dict:
-    res: dict = {"beer_id": str(dataset["beer/beerId"]), "name": str(dataset["beer/name"]),
-                 "brewer_id": str(dataset["beer/brewerId"]),
-                 "abv": float(dataset["beer/ABV"]),
-                 "style": str(dataset["beer/style"]), "appearance": float(dataset["review/appearance"]),
-                 "aroma": float(dataset["review/aroma"]), "palate": float(dataset["review/palate"]),
-                 "taste": float(dataset["review/taste"]),
-                 "overall": float(dataset["review/overall"]), "text": str(dataset["review/text"]),
-                 "time": int(dataset["review/time"]),
-                 "profile_name": str(dataset["review/profileName"]), "processed_text": []}
-    return res
-
-
-def extract_mandatory_keys_from_dataset(dataset: dict) -> dict:
+def extract_keys_from_dataset(dataset: dict) -> dict:
     res: dict = {
         "beer_id": str(dataset["beer/beerId"]),
         "name": str(dataset["beer/name"]),
@@ -106,18 +91,18 @@ def extract_mandatory_keys_from_dataset(dataset: dict) -> dict:
 
 def split_dataset_to_chunks() -> None:
     try:
-        os.makedirs("./dataset/chunks")
+        os.makedirs(CHUNKS)
     except FileExistsError:
         LOGGER.warning("chunks folder already exists")
-    split = Split(DATASET, "./dataset/chunks")
+    split = Split(DATASET, CHUNKS)
     split.bylinecount(LINES_PER_CHUNK)
-    os.remove("./dataset/chunks/manifest")
+    os.remove(f"{CHUNKS}/manifest")
 
 
 def remove_chunks() -> None:
-    chunks: list[str] = os.listdir("./dataset/chunks")
+    chunks: list[str] = os.listdir(CHUNKS)
     for chunk in chunks:
-        os.remove(f"./dataset/chunks/{chunk}")
+        os.remove(f"{CHUNKS}/{chunk}")
 
 
 def export_dataframe_to_excel(excel_file_name: str, df: pd.DataFrame) -> None:
@@ -136,44 +121,31 @@ async def async_dataframe_creator_with_mandatory_rows():
     return tasks
 
 
-async def async_dataframe_creator_with_all_rows():
+async def async_dataframe_creator(limit: int = 0):
     split_dataset_to_chunks()
-    chunk_files = os.listdir("./dataset/chunks")
+    chunk_files = os.listdir(CHUNKS)
     tasks: list = []
     for chunk_file in chunk_files:
         tasks.append(asyncio.create_task(
-            create_processed_dataframe_with_all_rows(chunk_file)))
+            create_processed_dataframe(chunk_file, limit)))
     await asyncio.gather(*tasks, return_exceptions=True)
     return tasks
 
 
-def generate_processed_dataframe_chunks_with_mandatory_rows():
-    res = asyncio.run(async_dataframe_creator_with_mandatory_rows())
+def generate_processed_dataframe(limit: int = 0):
+    res = asyncio.run(async_dataframe_creator(limit))
     remove_chunks()
     return [res.result() for res in res]
 
 
-def generate_processed_dataframe_chunks_with_all_rows():
-    res = asyncio.run(async_dataframe_creator_with_all_rows())
-    remove_chunks()
-    return [res.result() for res in res]
-
-
-def main(all_rows: bool = False):
+def main(limit: int = 0):
     df: pd.DataFrame = pd.DataFrame()
-    dataframes: list = generate_processed_dataframe_chunks_with_all_rows() if all_rows else generate_processed_dataframe_chunks_with_mandatory_rows()
+    dataframes: list = generate_processed_dataframe(limit)
     for dataframe in dataframes:
         df = pd.concat([df, dataframe], ignore_index=True)
     df.reset_index(inplace=True, drop=True)
-    export_dataframe_to_excel(DATASET_EXCEL_WITH_ALL_ROWS if all_rows else DATASET_EXCEL_WITH_MANDATORY_ROWS, df)
+    export_dataframe_to_excel(OUTPUT, df)
 
 
 if __name__ == "__main__":
-    choice: str = input("use all rows (y/n)? ")
-    if choice.lower() == "y":
-        main(all_rows=True)
-    elif choice.lower() == "n":
-        main(all_rows=False)
-    else:
-        print("unknown option. using all rows.")
-        main(all_rows=True)
+    main()
