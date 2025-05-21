@@ -1,6 +1,5 @@
 import re
 import string
-from ast import literal_eval
 
 import demoji
 import nltk
@@ -62,22 +61,3 @@ def handle_pre_processing(text: str) -> list[str]:
                          for token in tokens_with_no_punctuation]
     return lemmatized_tokens
 
-
-# def handle_aspect_extraction(tokens: list[str]) -> list[str]:
-#     nlp = spacy.load("en_core_web_sm")
-#     extracted_aspects: list[str] = []
-#     processed_token_string = " ".join(tokens)
-#     include_tag: str = "NN"
-#     exclude_shapes: list[str] = ["x", "xx", "xxx"]
-#     document = nlp(processed_token_string)
-#     for token in document:
-#         if token.tag_ == include_tag and token.shape_ not in exclude_shapes:
-#             extracted_aspects.append(token.lemma_)
-#     return extracted_aspects
-
-
-def load_pre_processed_dataset(dataset: str) -> pd.DataFrame:
-    df: pd.DataFrame = pd.read_excel(dataset)
-    df["processed_text"] = df["processed_text"].apply(literal_eval)
-    # df["extracted_aspects"] = df["extracted_aspects"].apply(literal_eval)
-    return df
