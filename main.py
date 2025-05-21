@@ -4,7 +4,7 @@ import pandas as pd
 import gensim.corpora as corpora
 from gensim.models import LdaMulticore, FastText
 
-from modules.processing.processor import load_pre_processed_dataset
+from modules.utils.utilities import load_pre_processed_dataset
 
 if __name__ == "__main__":
     df: pd.DataFrame = load_pre_processed_dataset("./dataset/dataset_as_excel_all_rows.xlsx")
