@@ -9,7 +9,6 @@ import unicodedata as uni
 from nltk import WordNetLemmatizer
 from nltk.corpus import stopwords
 from spellchecker import SpellChecker
-import spacy
 
 DATASET: str = "../../dataset/dataset_as_excel_mandatory_rows.xlsx"
 
