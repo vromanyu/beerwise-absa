@@ -54,5 +54,5 @@ if __name__ == "__main__":
     # fast_text_model_trainer()
     # generate_similarity_scores()
     # df_creator.export_dataframe_to_excel("../../dataset/dataset_as_excel_all_rows_full_with_similarities.xlsx", df)
-    generate_and_print_topics()
+    # generate_and_print_topics()
     pass
