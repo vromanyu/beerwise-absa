@@ -3,15 +3,16 @@ import asyncio
 import logging
 import os
 from logging import Logger
+import sys
 
 import pandas as pd
 from filesplit.split import Split
 
 from modules.processing.processor import handle_pre_processing
 
-DATASET: str = "../../dataset/beeradvocate.json"
-OUTPUT: str = "../../dataset/dataset_portion_pre_processed.xlsx"
-CHUNKS: str = "../../dataset/chunks"
+DATASET: str = "dataset/beeradvocate.json"
+OUTPUT: str = "dataset/dataset_portion_pre_processed.xlsx"
+CHUNKS: str = "dataset/chunks"
 LINES_PER_CHUNK: int = 500_000
 LOGGER: Logger = logging.getLogger(__name__)
 
@@ -108,4 +109,11 @@ def main(limit: int = 0):
 
 
 if __name__ == "__main__":
+    limit: int = 0
+    try:
+        limit = int(input("enter limit: "))
+    except ValueError:
+        limit = 0
+    except EOFError:
+        sys.exit()
     main()
