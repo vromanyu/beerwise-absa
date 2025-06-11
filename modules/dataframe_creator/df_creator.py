@@ -31,6 +31,7 @@ async def create_processed_dataframe(file: str, limit: int = 0) -> pd.DataFrame:
                 LOGGER.warning(f"parsed JSON at line {counter} was empty")
                 continue
             try:
+                LOGGER.info(f"processing line: {counter} -- dataset: {dataset_json}")
                 data_json_transform = extract_keys_from_dataset(dataset_json)
                 json_df = pd.DataFrame([data_json_transform])
                 json_df["processed_text"] = json_df["text"].apply(handle_pre_processing)
