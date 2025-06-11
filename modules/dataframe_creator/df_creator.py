@@ -10,6 +10,8 @@ from filesplit.split import Split
 
 from modules.processing.processor import handle_pre_processing
 
+logging.basicConfig(filename="creator.log", filemode= "a",  level= logging.INFO)
+
 DATASET: str = "dataset/beeradvocate.json"
 OUTPUT: str = "dataset/dataset_portion_pre_processed.xlsx"
 CHUNKS: str = "dataset/chunks"
@@ -25,25 +27,24 @@ async def create_processed_dataframe(file: str, limit: int = 0) -> pd.DataFrame:
             counter += 1
             if limit == counter:
                 break
-            LOGGER.info(f"reading line: {counter} --- {line[0:150]}...")
             dataset_json = ast.literal_eval(line)
             if not dataset_json:
-                LOGGER.warning(f"parsed JSON at line {counter} was empty")
+                LOGGER.warning(f"parsed JSON at line: {counter} -- file: {f.name}  was empty")
                 continue
             try:
-                LOGGER.info(f"processing line: {counter} -- dataset: {dataset_json}")
+                LOGGER.info(f"processing line: {counter} -- file: {f.name}")
                 data_json_transform = extract_keys_from_dataset(dataset_json)
                 json_df = pd.DataFrame([data_json_transform])
                 json_df["processed_text"] = json_df["text"].apply(handle_pre_processing)
                 result = pd.concat([result, json_df], ignore_index=True)
             except KeyError:
                 LOGGER.error(
-                    f"error processing line: {counter} --- dataset: {dataset_json}"
+                    f"error processing line: {counter} -- file: {f.name} -- dataset: {dataset_json}"
                 )
                 continue
             except ValueError:
                 LOGGER.error(
-                    f"error converting at line: {counter} ---- dataset: {dataset_json}"
+                    f"error converting line: {counter} -- file: {f.name}  -- dataset: {dataset_json}"
                 )
                 continue
     return result
@@ -117,4 +118,4 @@ if __name__ == "__main__":
         limit = 0
     except EOFError:
         sys.exit()
-    main()
+    main(limit)
