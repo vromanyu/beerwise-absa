@@ -101,7 +101,14 @@ def generate_processed_dataframe(limit: int = 0):
     return [res.result() for res in res]
 
 
-def main(limit: int = 0):
+def main():
+    limit: int = 0
+    try:
+        limit = int(input("enter limit: "))
+    except ValueError:
+        limit = 0
+    except EOFError:
+        sys.exit()
     df: pd.DataFrame = pd.DataFrame()
     dataframes: list = generate_processed_dataframe(limit)
     for dataframe in dataframes:
@@ -111,11 +118,4 @@ def main(limit: int = 0):
 
 
 if __name__ == "__main__":
-    limit: int = 0
-    try:
-        limit = int(input("enter limit: "))
-    except ValueError:
-        limit = 0
-    except EOFError:
-        sys.exit()
-    main(limit)
+    main()
