@@ -14,8 +14,8 @@ DATASET: str = "../../dataset/dataset_as_excel_mandatory_rows.xlsx"
 
 def download_required_runtime_packages() -> None:
     nltk.download("stopwords")
-    nltk.download('punkt_tab')
-    nltk.download('wordnet')
+    nltk.download("punkt_tab")
+    nltk.download("wordnet")
 
 
 def drop_missing_values(df: pd.DataFrame) -> None:
@@ -40,24 +40,32 @@ def handle_spellchecking(text: str) -> str:
     return text
 
 
-def handle_pre_processing(text: str) -> list[str]:
+def handle_pre_processing(text: str, lemmatize: bool = False) -> list[str]:
     punctuations: list = list(string.punctuation)
     lower_text: str = text.lower()
-    remove_numbers: str = "".join(
-        [word for word in lower_text if not word.isdigit()])
-    escape_characters_and_urls_removed: str = remove_numbers.replace(
-        r"\t", " ").replace(r"\n", " ").replace(r"http\S+", "").replace("\"", "").strip()
-    normalized_text: str = uni.normalize(
-        "NFKD", escape_characters_and_urls_removed)
+    remove_numbers: str = "".join([word for word in lower_text if not word.isdigit()])
+    escape_characters_and_urls_removed: str = (
+        remove_numbers.replace(r"\t", " ")
+        .replace(r"\n", " ")
+        .replace(r"http\S+", "")
+        .replace('"', "")
+        .strip()
+    )
+    normalized_text: str = uni.normalize("NFKD", escape_characters_and_urls_removed)
     emojis_removed: str = handle_emojis(normalized_text)
     spellchecked: str = handle_spellchecking(emojis_removed)
     tokens = nltk.word_tokenize(spellchecked)
     tokens_with_no_stopwords = [
-        str(token) for token in tokens if token not in set(stopwords.words("english"))]
+        str(token) for token in tokens if token not in set(stopwords.words("english"))
+    ]
     tokens_with_no_punctuation = [
-        str(token) for token in tokens_with_no_stopwords if token not in punctuations]
-    wordnet_lemmatizer = WordNetLemmatizer()
-    lemmatized_tokens = [str(wordnet_lemmatizer.lemmatize(token))
-                         for token in tokens_with_no_punctuation]
-    return lemmatized_tokens
-
+        str(token) for token in tokens_with_no_stopwords if token not in punctuations
+    ]
+    if lemmatize:
+        wordnet_lemmatizer = WordNetLemmatizer()
+        lemmatized_tokens = [
+            str(wordnet_lemmatizer.lemmatize(token))
+            for token in tokens_with_no_punctuation
+        ]
+        return lemmatized_tokens
+    return tokens_with_no_punctuation
