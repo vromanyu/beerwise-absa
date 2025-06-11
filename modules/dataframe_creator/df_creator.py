@@ -32,46 +32,17 @@ async def create_processed_dataframe(file: str, limit: int = 0) -> pd.DataFrame:
             try:
                 data_json_transform = extract_keys_from_dataset(dataset_json)
                 json_df = pd.DataFrame([data_json_transform])
-                json_df["processed_text"] = json_df["text"].apply(
-                    handle_pre_processing)
+                json_df["processed_text"] = json_df["text"].apply(handle_pre_processing)
                 result = pd.concat([result, json_df], ignore_index=True)
             except KeyError:
                 LOGGER.error(
-                    f"error processing line: {counter} --- dataset: {dataset_json}")
+                    f"error processing line: {counter} --- dataset: {dataset_json}"
+                )
                 continue
             except ValueError:
                 LOGGER.error(
-                    f"error converting at line: {counter} ---- dataset: {dataset_json}")
-                continue
-    return result
-
-
-async def create_processed_dataframe_with_mandatory_rows(file: str) -> pd.DataFrame:
-    result = pd.DataFrame()
-    counter: int = 0
-    with open(f"./dataset/chunks/{file}") as f:
-        for line in f:
-            counter += 1
-            if counter == 2:
-                break
-            LOGGER.info(f"reading line: {counter} --- {line[0:150]}...")
-            dataset_json = ast.literal_eval(line)
-            if not dataset_json:
-                LOGGER.warning(f"parsed JSON at line {counter} was empty")
-                continue
-            try:
-                data_json_transform = extract_keys_from_dataset(dataset_json)
-                json_df = pd.DataFrame([data_json_transform])
-                json_df["processed_text"] = json_df["text"].apply(
-                    handle_pre_processing)
-                result = pd.concat([result, json_df], ignore_index=True)
-            except KeyError:
-                LOGGER.error(
-                    f"error processing line: {counter} --- dataset: {dataset_json}")
-                continue
-            except ValueError:
-                LOGGER.error(
-                    f"error converting at line: {counter} ---- dataset: {dataset_json}")
+                    f"error converting at line: {counter} ---- dataset: {dataset_json}"
+                )
                 continue
     return result
 
@@ -84,8 +55,10 @@ def extract_keys_from_dataset(dataset: dict) -> dict:
         "aroma": float(dataset["review/aroma"]),
         "palate": float(dataset["review/palate"]),
         "taste": float(dataset["review/taste"]),
-        "overall": float(dataset["review/overall"]), "text": str(dataset["review/text"]),
-        "processed_text": []}
+        "overall": float(dataset["review/overall"]),
+        "text": str(dataset["review/text"]),
+        "processed_text": [],
+    }
     return res
 
 
@@ -106,19 +79,7 @@ def remove_chunks() -> None:
 
 
 def export_dataframe_to_excel(excel_file_name: str, df: pd.DataFrame) -> None:
-    df.to_excel(excel_file_name,
-                index=False, engine="openpyxl")
-
-
-async def async_dataframe_creator_with_mandatory_rows():
-    split_dataset_to_chunks()
-    chunk_files = os.listdir("./dataset/chunks")
-    tasks: list = []
-    for chunk_file in chunk_files:
-        tasks.append(asyncio.create_task(
-            create_processed_dataframe_with_mandatory_rows(chunk_file)))
-    await asyncio.gather(*tasks, return_exceptions=True)
-    return tasks
+    df.to_excel(excel_file_name, index=False, engine="openpyxl")
 
 
 async def async_dataframe_creator(limit: int = 0):
@@ -126,8 +87,7 @@ async def async_dataframe_creator(limit: int = 0):
     chunk_files = os.listdir(CHUNKS)
     tasks: list = []
     for chunk_file in chunk_files:
-        tasks.append(asyncio.create_task(
-            create_processed_dataframe(chunk_file, limit)))
+        tasks.append(asyncio.create_task(create_processed_dataframe(chunk_file, limit)))
     await asyncio.gather(*tasks, return_exceptions=True)
     return tasks
 
