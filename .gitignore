@@ -175,3 +175,7 @@ cython_debug/
 
 # Models folder
 models/
+
+# Dataset
+/dataset/*.json
+/dataset/*.xlsx
