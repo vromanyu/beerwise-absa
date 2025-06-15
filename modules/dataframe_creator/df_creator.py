@@ -116,7 +116,7 @@ def menu():
     elif option == "2":
         limit: int = 0
         try:
-            limit = int(input("enter limit: "))
+            limit = int(input("enter limit (default: 0): "))
         except ValueError:
             limit = 0
         except EOFError:
