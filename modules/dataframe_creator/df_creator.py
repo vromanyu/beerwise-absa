@@ -1,24 +1,28 @@
 import ast
-import asyncio
+import concurrent.futures
 import json
 import logging
-import os
+import multiprocessing
 import re
+import sys
+import threading
+from concurrent.futures.thread import ThreadPoolExecutor
 from logging import Logger
 
 import pandas as pd
-from filesplit.split import Split
 
 from modules.processing.processor import handle_pre_processing
 
-logging.basicConfig(filename="creator.log", filemode="a", level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 DATASET: str = "dataset/beeradvocate.json"
+NORMALIZED_DATASET: str = "dataset/beeradvocate_normalized.json"
 OUTPUT: str = "dataset/dataset_portion_pre_processed.xlsx"
-NORMALIZED_DATASET_OUTPUT: str = "dataset/beeradvocate_normalized.json"
-CHUNKS: str = "dataset/chunks"
-LINES_PER_CHUNK: int = 500_000
+
 LOGGER: Logger = logging.getLogger(__name__)
+
+RESULT: pd.DataFrame = pd.DataFrame()
+NUMBER_OF_CORES: int = multiprocessing.cpu_count()
 
 
 def normalize_json_dataset(file: str) -> None:
@@ -30,46 +34,55 @@ def normalize_json_dataset(file: str) -> None:
             if not dataset_json:
                 LOGGER.warning(f"parsed JSON at line: {counter} -- file: {json_file.name}  was empty")
                 continue
-            review_wrong_format_text: str = dataset_json["review/text"]
-            remove_excessive_backslashes: str = review_wrong_format_text.replace("\\", "")
+            review_wrong_format_text: str = dataset_json["review/text"].lower().strip()
+            removed_numbers: str = re.sub(r"\d+", "", review_wrong_format_text)
+            remove_excessive_backslashes: str = removed_numbers.replace("\\", "")
             escaped_characters_clean_text: str = bytes(remove_excessive_backslashes, "utf-8").decode("unicode_escape")
-            remove_excessive_spaces: str = " ".join(re.split("\s+", escaped_characters_clean_text, flags=re.UNICODE))
+            remove_excessive_spaces: str = " ".join(re.split(r"\s+", escaped_characters_clean_text, flags=re.UNICODE))
             dataset_json["review/text"] = remove_excessive_spaces
-            with open(NORMALIZED_DATASET_OUTPUT, "a", encoding="utf-8") as normalized_dataset_json:
+            with open(NORMALIZED_DATASET, "a", encoding="utf-8") as normalized_dataset_json:
                 json.dump(dataset_json, normalized_dataset_json)
                 normalized_dataset_json.write("\n")
                 LOGGER.info(f"line {counter} written")
 
 
-async def create_processed_dataframe(file: str, limit: int = 0) -> pd.DataFrame:
-    result = pd.DataFrame()
+def create_processed_dataframe(file: str = NORMALIZED_DATASET, limit: int = 0) -> None:
     counter: int = 0
-    with open(f"{CHUNKS}/{file}") as f:
-        for line in f:
+    pool: ThreadPoolExecutor = concurrent.futures.ThreadPoolExecutor(max_workers=NUMBER_OF_CORES)
+    with open(f"{file}") as dataset:
+        for line in dataset:
             counter += 1
             if limit == counter:
                 break
-            dataset_json = ast.literal_eval(line)
-            if not dataset_json:
-                LOGGER.warning(f"parsed JSON at line: {counter} -- file: {f.name}  was empty")
-                continue
-            try:
-                LOGGER.info(f"processing line: {counter} -- file: {f.name}")
-                data_json_transform = extract_keys_from_dataset(dataset_json)
-                json_df = pd.DataFrame([data_json_transform])
-                json_df["processed_text"] = json_df["text"].apply(handle_pre_processing)
-                result = pd.concat([result, json_df], ignore_index=True)
-            except KeyError:
-                LOGGER.error(
-                    f"error processing line: {counter} -- file: {f.name} -- dataset: {dataset_json}"
-                )
-                continue
-            except ValueError:
-                LOGGER.error(
-                    f"error converting line: {counter} -- file: {f.name}  -- dataset: {dataset_json}"
-                )
-                continue
-    return result
+            pool.submit(process_line, line, counter)
+    pool.shutdown(wait=True)
+    LOGGER.info("finished parallel processing")
+
+
+def process_line(data: str, line: int) -> None:
+    global RESULT
+    dataset_json = ast.literal_eval(data)
+    if not dataset_json:
+        LOGGER.warning(f"line {line}: can't be processed")
+        return
+    try:
+        LOGGER.info(f"processing line: {line}")
+        data_json_transform = extract_keys_from_dataset(dataset_json)
+        json_df = pd.DataFrame([data_json_transform])
+        json_df["processed_text"] = json_df["text"].apply(handle_pre_processing)
+        mutex: threading.Lock = threading.Lock()
+        with mutex:
+            RESULT = pd.concat([RESULT, json_df], ignore_index=True)
+        mutex.release()
+
+    except KeyError:
+        LOGGER.error(
+            f"error processing line: {line} and data: {data}"
+        )
+    except ValueError:
+        LOGGER.error(
+            f"error converting line: {line} and data: {data}"
+        )
 
 
 def extract_keys_from_dataset(dataset: dict) -> dict:
@@ -87,57 +100,32 @@ def extract_keys_from_dataset(dataset: dict) -> dict:
     return res
 
 
-def split_dataset_to_chunks() -> None:
-    try:
-        os.makedirs(CHUNKS)
-    except FileExistsError:
-        LOGGER.warning("chunks folder already exists")
-    split = Split(DATASET, CHUNKS)
-    split.bylinecount(LINES_PER_CHUNK)
-    os.remove(f"{CHUNKS}/manifest")
-
-
-def remove_chunks() -> None:
-    chunks: list[str] = os.listdir(CHUNKS)
-    for chunk in chunks:
-        os.remove(f"{CHUNKS}/{chunk}")
-
-
 def export_dataframe_to_excel(excel_file_name: str, df: pd.DataFrame) -> None:
     df.to_excel(excel_file_name, index=False, engine="openpyxl")
 
 
-async def async_dataframe_creator(limit: int = 0):
-    split_dataset_to_chunks()
-    chunk_files = os.listdir(CHUNKS)
-    tasks: list = []
-    for chunk_file in chunk_files:
-        tasks.append(asyncio.create_task(create_processed_dataframe(chunk_file, limit)))
-    await asyncio.gather(*tasks, return_exceptions=True)
-    return tasks
-
-
-def generate_processed_dataframe(limit: int = 0):
-    res = asyncio.run(async_dataframe_creator(limit))
-    remove_chunks()
-    return [res.result() for res in res]
-
-
 def main():
-    # limit: int = 0
-    # try:
-    #     limit = int(input("enter limit: "))
-    # except ValueError:
-    #     limit = 0
-    # except EOFError:
-    #     sys.exit()
-    # df: pd.DataFrame = pd.DataFrame()
-    # dataframes: list = generate_processed_dataframe(limit)
-    # for dataframe in dataframes:
-    #     df = pd.concat([df, dataframe], ignore_index=True)
-    # df.reset_index(inplace=True, drop=True)
-    # export_dataframe_to_excel(OUTPUT, df)
-    normalize_json_dataset(DATASET)
+    menu()
+
+
+def menu():
+    print("1 - normalize_json_dataset\n2 - create_processed_dataframe")
+    option: str = input("Enter your option: ")
+    if option == "1":
+        normalize_json_dataset(DATASET)
+    elif option == "2":
+        limit: int = 0
+        try:
+            limit = int(input("enter limit: "))
+        except ValueError:
+            limit = 0
+        except EOFError:
+            sys.exit()
+        create_processed_dataframe(NORMALIZED_DATASET, limit)
+        RESULT.reset_index(inplace=True, drop=True)
+        export_dataframe_to_excel(OUTPUT, RESULT)
+    else:
+        print("invalid option. Exiting...")
 
 
 if __name__ == "__main__":
