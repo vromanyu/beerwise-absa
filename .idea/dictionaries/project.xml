@@ -4,6 +4,8 @@
       <w>beeradvocate</w>
       <w>bernouli</w>
       <w>lemmatizer</w>
+      <w>nfkd</w>
+      <w>punkt</w>
     </words>
   </dictionary>
 </component>
