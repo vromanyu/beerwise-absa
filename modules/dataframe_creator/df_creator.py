@@ -1,22 +1,44 @@
 import ast
 import asyncio
+import json
 import logging
 import os
+import re
 from logging import Logger
-import sys
 
 import pandas as pd
 from filesplit.split import Split
 
 from modules.processing.processor import handle_pre_processing
 
-logging.basicConfig(filename="creator.log", filemode= "a",  level= logging.INFO)
+logging.basicConfig(filename="creator.log", filemode="a", level=logging.INFO)
 
 DATASET: str = "dataset/beeradvocate.json"
 OUTPUT: str = "dataset/dataset_portion_pre_processed.xlsx"
+NORMALIZED_DATASET_OUTPUT: str = "dataset/beeradvocate_normalized.json"
 CHUNKS: str = "dataset/chunks"
 LINES_PER_CHUNK: int = 500_000
 LOGGER: Logger = logging.getLogger(__name__)
+
+
+def normalize_json_dataset(file: str) -> None:
+    counter: int = 0
+    with open(file) as json_file:
+        for line in json_file:
+            counter += 1
+            dataset_json: dict = ast.literal_eval(line)
+            if not dataset_json:
+                LOGGER.warning(f"parsed JSON at line: {counter} -- file: {json_file.name}  was empty")
+                continue
+            review_wrong_format_text: str = dataset_json["review/text"]
+            remove_excessive_backslashes: str = review_wrong_format_text.replace("\\", "")
+            escaped_characters_clean_text: str = bytes(remove_excessive_backslashes, "utf-8").decode("unicode_escape")
+            remove_excessive_spaces: str = " ".join(re.split("\s+", escaped_characters_clean_text, flags=re.UNICODE))
+            dataset_json["review/text"] = remove_excessive_spaces
+            with open(NORMALIZED_DATASET_OUTPUT, "a", encoding="utf-8") as normalized_dataset_json:
+                json.dump(dataset_json, normalized_dataset_json)
+                normalized_dataset_json.write("\n")
+                LOGGER.info(f"line {counter} written")
 
 
 async def create_processed_dataframe(file: str, limit: int = 0) -> pd.DataFrame:
@@ -102,19 +124,20 @@ def generate_processed_dataframe(limit: int = 0):
 
 
 def main():
-    limit: int = 0
-    try:
-        limit = int(input("enter limit: "))
-    except ValueError:
-        limit = 0
-    except EOFError:
-        sys.exit()
-    df: pd.DataFrame = pd.DataFrame()
-    dataframes: list = generate_processed_dataframe(limit)
-    for dataframe in dataframes:
-        df = pd.concat([df, dataframe], ignore_index=True)
-    df.reset_index(inplace=True, drop=True)
-    export_dataframe_to_excel(OUTPUT, df)
+    # limit: int = 0
+    # try:
+    #     limit = int(input("enter limit: "))
+    # except ValueError:
+    #     limit = 0
+    # except EOFError:
+    #     sys.exit()
+    # df: pd.DataFrame = pd.DataFrame()
+    # dataframes: list = generate_processed_dataframe(limit)
+    # for dataframe in dataframes:
+    #     df = pd.concat([df, dataframe], ignore_index=True)
+    # df.reset_index(inplace=True, drop=True)
+    # export_dataframe_to_excel(OUTPUT, df)
+    normalize_json_dataset(DATASET)
 
 
 if __name__ == "__main__":
