@@ -13,7 +13,7 @@ import pandas as pd
 
 from modules.processing.preprocessing import handle_pre_processing, download_required_runtime_packages
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(filename="creator.log", filemode="a", level=logging.INFO)
 
 DATASET: str = "dataset/beeradvocate.json"
 NORMALIZED_DATASET: str = "dataset/beeradvocate_normalized.json"
@@ -35,11 +35,14 @@ def normalize_json_dataset(file: str) -> None:
                 LOGGER.warning(f"parsed JSON at line: {counter} -- file: {json_file.name}  was empty")
                 continue
             review_wrong_format_text: str = dataset_json["review/text"].lower().strip()
-            removed_numbers: str = re.sub(r"\d+", "", review_wrong_format_text)
-            remove_excessive_backslashes: str = removed_numbers.replace("\\", "")
-            escaped_characters_clean_text: str = bytes(remove_excessive_backslashes, "utf-8").decode("unicode_escape")
-            remove_excessive_spaces: str = " ".join(re.split(r"\s+", escaped_characters_clean_text, flags=re.UNICODE))
-            dataset_json["review/text"] = remove_excessive_spaces
+            removed_non_alpha_chars: str = re.sub(r"[^a-zA-Z0-9\s]", "", review_wrong_format_text)
+            removed_digits: str = re.sub(r"\d+", "", removed_non_alpha_chars)
+            remove_new_lines_characters: str = re.sub(r"\n", " ", removed_digits)
+            remove_tab_characters: str = re.sub(r"\t", "", remove_new_lines_characters)
+            remove_excessive_backslashes: str = remove_tab_characters.replace("\\", "")
+            # escaped_characters_clean_text: str = bytes(remove_excessive_backslashes, "utf-8").decode("unicode_escape")
+            # remove_excessive_spaces: str = " ".join(re.split(r"\s+", escaped_characters_clean_text, flags=re.UNICODE))
+            dataset_json["review/text"] = remove_excessive_backslashes
             with open(NORMALIZED_DATASET, "a", encoding="utf-8") as normalized_dataset_json:
                 json.dump(dataset_json, normalized_dataset_json)
                 normalized_dataset_json.write("\n")
