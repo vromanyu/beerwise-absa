@@ -11,15 +11,19 @@ from logging import Logger
 
 import pandas as pd
 
-from modules.processing.preprocessing import handle_pre_processing, download_required_runtime_packages
+from modules.processing.preprocessing import (
+    handle_pre_processing,
+    download_required_runtime_packages,
+)
 
-logging.basicConfig(filename="creator.log", filemode="a", level=logging.INFO)
 
 DATASET: str = "dataset/beeradvocate.json"
 NORMALIZED_DATASET: str = "dataset/beeradvocate_normalized.json"
 OUTPUT: str = "dataset/dataset_portion_pre_processed.xlsx"
 
+LOG_FILE: str = "creator.log"
 LOGGER: Logger = logging.getLogger(__name__)
+logging.basicConfig(filename=LOG_FILE, filemode="a", level=logging.INFO)
 
 RESULT: pd.DataFrame = pd.DataFrame()
 NUMBER_OF_CORES: int = multiprocessing.cpu_count()
@@ -32,18 +36,26 @@ def normalize_json_dataset(file: str) -> None:
             counter += 1
             dataset_json: dict = ast.literal_eval(line)
             if not dataset_json:
-                LOGGER.warning(f"parsed JSON at line: {counter} -- file: {json_file.name}  was empty")
+                LOGGER.warning(
+                    f"parsed JSON at line: {counter} -- file: {json_file.name}  was empty"
+                )
                 continue
             review_wrong_format_text: str = dataset_json["review/text"].lower().strip()
-            removed_non_alpha_chars: str = re.sub(r"[^a-zA-Z0-9\s]", "", review_wrong_format_text)
+            removed_non_alpha_chars: str = re.sub(
+                r"[^a-zA-Z0-9\s]", "", review_wrong_format_text
+            )
             removed_digits: str = re.sub(r"\d+", "", removed_non_alpha_chars)
             remove_new_lines_characters: str = re.sub(r"\n", " ", removed_digits)
             remove_tab_characters: str = re.sub(r"\t", "", remove_new_lines_characters)
             remove_excessive_backslashes: str = remove_tab_characters.replace("\\", "")
             # escaped_characters_clean_text: str = bytes(remove_excessive_backslashes, "utf-8").decode("unicode_escape")
-            remove_excessive_spaces: str = " ".join(re.split(r"\s+", remove_excessive_backslashes, flags=re.UNICODE))
+            remove_excessive_spaces: str = " ".join(
+                re.split(r"\s+", remove_excessive_backslashes, flags=re.UNICODE)
+            )
             dataset_json["review/text"] = remove_excessive_spaces
-            with open(NORMALIZED_DATASET, "a", encoding="utf-8") as normalized_dataset_json:
+            with open(
+                NORMALIZED_DATASET, "a", encoding="utf-8"
+            ) as normalized_dataset_json:
                 json.dump(dataset_json, normalized_dataset_json)
                 normalized_dataset_json.write("\n")
                 LOGGER.info(f"line {counter} written")
@@ -51,7 +63,9 @@ def normalize_json_dataset(file: str) -> None:
 
 def create_processed_dataframe(file: str = NORMALIZED_DATASET, limit: int = 0) -> None:
     counter: int = 0
-    pool: ThreadPoolExecutor = concurrent.futures.ThreadPoolExecutor(max_workers=NUMBER_OF_CORES)
+    pool: ThreadPoolExecutor = concurrent.futures.ThreadPoolExecutor(
+        max_workers=NUMBER_OF_CORES
+    )
     with open(f"{file}") as dataset:
         for line in dataset:
             counter += 1
@@ -79,13 +93,9 @@ def process_line(data: str, line: int) -> None:
         mutex.release()
 
     except KeyError:
-        LOGGER.error(
-            f"error processing line: {line} and data: {data}"
-        )
+        LOGGER.error(f"error processing line: {line} and data: {data}")
     except ValueError:
-        LOGGER.error(
-            f"error converting line: {line} and data: {data}"
-        )
+        LOGGER.error(f"error converting line: {line} and data: {data}")
 
 
 def extract_keys_from_dataset(dataset: dict) -> dict:
@@ -107,8 +117,14 @@ def export_dataframe_to_excel(excel_file_name: str, df: pd.DataFrame) -> None:
     df.to_excel(excel_file_name, index=False, engine="openpyxl")
 
 
+def clean_logs() -> None:
+    with open(LOG_FILE, "w") as log_file:
+        log_file.close()
+
+
 def main():
     menu()
+
 
 def menu():
     print("1 - normalize_json_dataset\n2 - create_processed_dataframe")
