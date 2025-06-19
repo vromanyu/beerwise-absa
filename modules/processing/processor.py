@@ -25,7 +25,6 @@ LOG_FILE: str = "creator.log"
 LOGGER: Logger = logging.getLogger(__name__)
 logging.basicConfig(filename=LOG_FILE, filemode="a", level=logging.INFO)
 
-RESULT: pd.DataFrame = pd.DataFrame()
 NUMBER_OF_CORES: int = multiprocessing.cpu_count()
 
 
@@ -61,41 +60,43 @@ def normalize_json_dataset(file: str) -> None:
                 LOGGER.info(f"line {counter} written")
 
 
-def create_processed_dataframe(file: str = NORMALIZED_DATASET, limit: int = 0) -> None:
+def create_processed_dataframe(
+    file: str = NORMALIZED_DATASET, limit: int = 0
+) -> pd.DataFrame:
+    result: pd.DataFrame = pd.DataFrame()
     counter: int = 0
-    pool: ThreadPoolExecutor = concurrent.futures.ThreadPoolExecutor(
-        max_workers=NUMBER_OF_CORES
-    )
     with open(f"{file}") as dataset:
         for line in dataset:
             counter += 1
             if limit == counter:
                 break
-            pool.submit(process_line, line, counter)
-    pool.shutdown(wait=True)
+            processed_line: pd.DataFrame = process_line(line, counter)
+            if processed_line is not None:
+                result = pd.concat([result, processed_line], ignore_index=True)
+            else:
+                LOGGER.warning(f"line {counter} was not processed")
     LOGGER.info("finished parallel processing")
+    return result
 
 
-def process_line(data: str, line: int) -> None:
-    global RESULT
+def process_line(data: str, line: int) -> pd.DataFrame | None:
     dataset_json = ast.literal_eval(data)
     if not dataset_json:
         LOGGER.warning(f"line {line}: can't be processed")
-        return
+        return None
     try:
+        result: pd.DataFrame = pd.DataFrame()
         LOGGER.info(f"processing line: {line}")
         data_json_transform = extract_keys_from_dataset(dataset_json)
         json_df = pd.DataFrame([data_json_transform])
         json_df["processed_text"] = json_df["text"].apply(handle_pre_processing)
-        mutex: threading.Lock = threading.Lock()
-        with mutex:
-            RESULT = pd.concat([RESULT, json_df], ignore_index=True)
-        mutex.release()
-
+        return pd.concat([result, json_df], ignore_index=True)
     except KeyError:
         LOGGER.error(f"error processing line: {line} and data: {data}")
+        return None
     except ValueError:
         LOGGER.error(f"error converting line: {line} and data: {data}")
+        return None
 
 
 def extract_keys_from_dataset(dataset: dict) -> dict:
@@ -140,9 +141,9 @@ def menu():
         except EOFError:
             sys.exit()
         download_required_runtime_packages()
-        create_processed_dataframe(NORMALIZED_DATASET, limit)
-        RESULT.reset_index(inplace=True, drop=True)
-        export_dataframe_to_excel(OUTPUT, RESULT)
+        result: pd.DataFrame = create_processed_dataframe(NORMALIZED_DATASET, limit)
+        result.reset_index(inplace=True, drop=True)
+        export_dataframe_to_excel(OUTPUT, result)
     else:
         print("invalid option. Exiting...")
 
