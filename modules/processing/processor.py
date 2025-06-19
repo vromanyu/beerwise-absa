@@ -41,8 +41,8 @@ def normalize_json_dataset(file: str) -> None:
             remove_tab_characters: str = re.sub(r"\t", "", remove_new_lines_characters)
             remove_excessive_backslashes: str = remove_tab_characters.replace("\\", "")
             # escaped_characters_clean_text: str = bytes(remove_excessive_backslashes, "utf-8").decode("unicode_escape")
-            # remove_excessive_spaces: str = " ".join(re.split(r"\s+", escaped_characters_clean_text, flags=re.UNICODE))
-            dataset_json["review/text"] = remove_excessive_backslashes
+            remove_excessive_spaces: str = " ".join(re.split(r"\s+", remove_excessive_backslashes, flags=re.UNICODE))
+            dataset_json["review/text"] = remove_excessive_spaces
             with open(NORMALIZED_DATASET, "a", encoding="utf-8") as normalized_dataset_json:
                 json.dump(dataset_json, normalized_dataset_json)
                 normalized_dataset_json.write("\n")
