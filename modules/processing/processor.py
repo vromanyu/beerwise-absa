@@ -1,12 +1,9 @@
 import ast
-import concurrent.futures
 import json
 import logging
 import multiprocessing
 import re
 import sys
-import threading
-from concurrent.futures.thread import ThreadPoolExecutor
 from logging import Logger
 
 import pandas as pd
@@ -15,7 +12,6 @@ from modules.processing.preprocessing import (
     handle_pre_processing,
     download_required_runtime_packages,
 )
-
 
 DATASET: str = "dataset/beeradvocate.json"
 NORMALIZED_DATASET: str = "dataset/beeradvocate_normalized.json"
