@@ -1,13 +1,10 @@
 import sys
 
-import pandas as pd
-
-from modules.processing.processor import normalize_json_dataset, DATASET, create_processed_dataframe, \
-    NORMALIZED_DATASET, OUTPUT, export_dataframe_to_excel
+from modules.processing.processor import normalize_json_dataset, DATASET, create_processed_excel_files
 
 
 def menu():
-    print("1 - normalize_json_dataset\n2 - create_processed_dataframe")
+    print("1 - normalize_json_dataset\n2 - create_processed_excel_files")
     option: str = input("Enter your option: ")
     if option == "1":
         normalize_json_dataset(DATASET)
@@ -19,11 +16,10 @@ def menu():
             limit = 0
         except EOFError:
             sys.exit()
-        result: pd.DataFrame = create_processed_dataframe(NORMALIZED_DATASET, limit)
-        result.reset_index(inplace=True, drop=True)
-        export_dataframe_to_excel(OUTPUT, result)
+        create_processed_excel_files(limit)
     else:
         print("invalid option. Exiting...")
+
 
 
 def main():

@@ -1,12 +1,16 @@
 import ast
+import concurrent
 import json
 import logging
 import multiprocessing
+import os
 import re
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from logging import Logger
 
 import pandas as pd
+from filesplit.split import Split
 
 from modules.processing.preprocessing import (
     handle_pre_processing,
@@ -15,7 +19,9 @@ from modules.processing.preprocessing import (
 
 DATASET: str = "dataset/beeradvocate.json"
 NORMALIZED_DATASET: str = "dataset/beeradvocate_normalized.json"
-OUTPUT: str = "dataset/dataset_portion_pre_processed.xlsx"
+OUTPUT_FILE_PREFIX: str = "dataset/dataset_portion_pre_processed_"
+CHUNKS: str = "dataset/chunks"
+LINES_PER_CHUNK: int = 500_000
 
 LOG_FILE: str = "creator.log"
 LOGGER: Logger = logging.getLogger(__name__)
@@ -56,12 +62,24 @@ def normalize_json_dataset(file: str) -> None:
                 LOGGER.info(f"line {counter} written")
 
 
-def create_processed_dataframe(
-    file: str = NORMALIZED_DATASET, limit: int = 0
-) -> pd.DataFrame:
+def create_processed_excel_files(limit: int = 0) -> None:
+    pool: ThreadPoolExecutor = concurrent.futures.ThreadPoolExecutor(
+        max_workers=NUMBER_OF_CORES
+    )
+    split_dataset_to_chunks()
+    chunk_files: list = os.listdir(CHUNKS)
+    chunk_number: int = 1
+    for chunk_file in chunk_files:
+        pool.submit(process_chunk, chunk_file, chunk_number, limit)
+        chunk_number += 1
+    pool.shutdown(wait=True)
+    remove_chunks()
+    LOGGER.info("finished parallel processing of all chunks")
+
+def process_chunk(chunk_file: str, chunk_number: int,  limit: int = 0) -> None:
     result: pd.DataFrame = pd.DataFrame()
-    counter: int = 0
-    with open(f"{file}") as dataset:
+    with open(f"{CHUNKS}/{chunk_file}") as dataset:
+        counter: int = 0
         for line in dataset:
             counter += 1
             if limit == counter:
@@ -70,9 +88,11 @@ def create_processed_dataframe(
             if processed_line is not None:
                 result = pd.concat([result, processed_line], ignore_index=True)
             else:
-                LOGGER.warning(f"line {counter} was not processed")
-    LOGGER.info("finished parallel processing")
-    return result
+                LOGGER.warning(f"line {counter} in chunk: {chunk_file} was not processed")
+        LOGGER.info(f"finished parallel processing chunk: {chunk_file}")
+        result.reset_index(inplace=True, drop=True)
+        export_dataframe_to_excel(f"{OUTPUT_FILE_PREFIX}_{chunk_number}.xlsx", result)
+        LOGGER.info(f"finished exporting chunk: {chunk_file}")
 
 
 def process_line(data: str, line: int) -> pd.DataFrame | None:
@@ -109,6 +129,20 @@ def extract_keys_from_dataset(dataset: dict) -> dict:
     }
     return res
 
+def split_dataset_to_chunks() -> None:
+    try:
+        os.makedirs(CHUNKS)
+    except FileExistsError:
+        LOGGER.warning("chunks folder already exists")
+    split = Split(NORMALIZED_DATASET, CHUNKS)
+    split.bylinecount(LINES_PER_CHUNK)
+    os.remove(f"{CHUNKS}/manifest")
+
+def remove_chunks() -> None:
+    chunks: list[str] = os.listdir(CHUNKS)
+    for chunk in chunks:
+        os.remove(f"{CHUNKS}/{chunk}")
+
 
 def export_dataframe_to_excel(excel_file_name: str, df: pd.DataFrame) -> None:
     df.to_excel(excel_file_name, index=False, engine="openpyxl")
@@ -118,27 +152,3 @@ def clean_logs() -> None:
     with open(LOG_FILE, "w") as log_file:
         log_file.close()
 
-
-def main():
-    menu()
-
-
-def menu():
-    print("1 - normalize_json_dataset\n2 - create_processed_dataframe")
-    option: str = input("Enter your option: ")
-    if option == "1":
-        normalize_json_dataset(DATASET)
-    elif option == "2":
-        limit: int = 0
-        try:
-            limit = int(input("enter limit (default: 0): "))
-        except ValueError:
-            limit = 0
-        except EOFError:
-            sys.exit()
-        download_required_runtime_packages()
-        result: pd.DataFrame = create_processed_dataframe(NORMALIZED_DATASET, limit)
-        result.reset_index(inplace=True, drop=True)
-        export_dataframe_to_excel(OUTPUT, result)
-    else:
-        print("invalid option. Exiting...")
