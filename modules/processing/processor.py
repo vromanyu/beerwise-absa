@@ -5,7 +5,6 @@ import logging
 import multiprocessing
 import os
 import re
-import sys
 from concurrent.futures import ThreadPoolExecutor
 from logging import Logger
 
@@ -14,7 +13,6 @@ from filesplit.split import Split
 
 from modules.processing.preprocessing import (
     handle_pre_processing,
-    download_required_runtime_packages,
 )
 
 DATASET: str = "dataset/beeradvocate.json"

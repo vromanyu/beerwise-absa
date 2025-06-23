@@ -8,7 +8,6 @@ from gensim import corpora
 from gensim.corpora import Dictionary
 from gensim.models import FastText, LdaMulticore
 
-from modules.dataframe_creator.df_creator import export_dataframe_to_excel
 from modules.utils.utilities import load_pre_processed_dataset
 
 LOGGER: Logger = logging.getLogger(__name__)
