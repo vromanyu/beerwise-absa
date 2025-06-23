@@ -23,7 +23,7 @@ LINES_PER_CHUNK: int = 500_000
 
 LOG_FILE: str = "creator.log"
 LOGGER: Logger = logging.getLogger(__name__)
-logging.basicConfig(filename=LOG_FILE, filemode="a", level=logging.INFO)
+logging.basicConfig(level=logging.INFO)
 
 NUMBER_OF_CORES: int = multiprocessing.cpu_count()
 
