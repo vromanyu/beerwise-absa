@@ -1,19 +1,33 @@
-from pprint import pprint
+import sys
 
 import pandas as pd
-import gensim.corpora as corpora
-from gensim.models import LdaMulticore, FastText
 
-from modules.utils.utilities import load_pre_processed_dataset
+from modules.processing.processor import normalize_json_dataset, DATASET, create_processed_dataframe, \
+    NORMALIZED_DATASET, OUTPUT, export_dataframe_to_excel
+
+
+def menu():
+    print("1 - normalize_json_dataset\n2 - create_processed_dataframe")
+    option: str = input("Enter your option: ")
+    if option == "1":
+        normalize_json_dataset(DATASET)
+    elif option == "2":
+        limit: int = 0
+        try:
+            limit = int(input("enter limit (default: 0): "))
+        except ValueError:
+            limit = 0
+        except EOFError:
+            sys.exit()
+        result: pd.DataFrame = create_processed_dataframe(NORMALIZED_DATASET, limit)
+        result.reset_index(inplace=True, drop=True)
+        export_dataframe_to_excel(OUTPUT, result)
+    else:
+        print("invalid option. Exiting...")
+
+
+def main():
+    menu()
 
 if __name__ == "__main__":
-    pass
-    # df: pd.DataFrame = load_pre_processed_dataset("./dataset/dataset_as_excel_all_rows.xlsx")
-    # data_words: list[list] = df["processed_text"].to_list()
-    # id2word = corpora.Dictionary(data_words)
-    # corpus = [id2word.doc2bow(data_word) for data_word in data_words]
-    # lda_model = LdaMulticore(corpus=corpus, num_topics=50, id2word=id2word, iterations=400)
-    # fasttext_model = FastText(data_words, vector_size=10, window=5, min_count=5, workers=20, sg=1)
-    # fasttext_model.save("./models/FastText-Model-For-ABSA.bin")
-    # print(fasttext_model.wv.n_similarity("A lot of foam. But a lot.	In the smell some banana, and then lactic and tart. Not a good start.	Quite dark orange in color, with a lively carbonation (now visible, under the foam).	Again tending to lactic sourness.	Same for the taste. With some yeast and banana.", "taste"))
-    # print(fasttext_model.wv.n_similarity("Dark red color, light beige foam, average.	In the smell malt and caramel, not really light.	Again malt and caramel in the taste, not bad in the end.	Maybe a note of honey in teh back, and a light fruitiness.	Average body.	In the aftertaste a light bitterness, with the malt and red fruit.	Nothing exceptional, but not bad, drinkable beer.", "taste"))
+    main()

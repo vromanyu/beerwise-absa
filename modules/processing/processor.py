@@ -142,7 +142,3 @@ def menu():
         export_dataframe_to_excel(OUTPUT, result)
     else:
         print("invalid option. Exiting...")
-
-
-if __name__ == "__main__":
-    main()
