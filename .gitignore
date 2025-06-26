@@ -178,7 +178,6 @@ models/
 
 # Dataset
 /dataset/*.json
-/dataset/*.xlsx
 
 #.vscode
 /.vscode/
