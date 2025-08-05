@@ -12,7 +12,8 @@ from spellchecker import SpellChecker
 DATASET: str = "../../dataset/dataset_as_excel_mandatory_rows.xlsx"
 
 PUNCTUATION: list = list(string.punctuation)
-STOPWORDS:set = set(stopwords.words("english"))
+STOPWORDS: set = set(stopwords.words("english"))
+
 
 def download_required_runtime_packages() -> None:
     nltk.download("stopwords")
@@ -49,13 +50,14 @@ def handle_pre_processing(text: str, lemmatize: bool = False) -> list[str]:
     # spellchecked: str = handle_spellchecking(emojis_removed)
     tokens = nltk.word_tokenize(emojis_removed)
     processed_tokens = [
-        str(token) for token in tokens if token not in STOPWORDS and token not in PUNCTUATION
+        str(token)
+        for token in tokens
+        if token not in STOPWORDS and token not in PUNCTUATION
     ]
     if lemmatize:
         wordnet_lemmatizer = WordNetLemmatizer()
         lemmatized_tokens = [
-            str(wordnet_lemmatizer.lemmatize(token))
-            for token in processed_tokens
+            str(wordnet_lemmatizer.lemmatize(token)) for token in processed_tokens
         ]
         return lemmatized_tokens
     return processed_tokens

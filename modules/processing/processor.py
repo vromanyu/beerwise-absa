@@ -74,7 +74,8 @@ def create_processed_excel_files(limit: int = 0) -> None:
     remove_chunks()
     LOGGER.info("finished parallel processing of all chunks")
 
-def process_chunk(chunk_file: str, chunk_number: int,  limit: int = 0) -> None:
+
+def process_chunk(chunk_file: str, chunk_number: int, limit: int = 0) -> None:
     result: pd.DataFrame = pd.DataFrame()
     with open(f"{CHUNKS}/{chunk_file}") as dataset:
         counter: int = 0
@@ -86,7 +87,9 @@ def process_chunk(chunk_file: str, chunk_number: int,  limit: int = 0) -> None:
             if processed_line is not None:
                 result = pd.concat([result, processed_line], ignore_index=True)
             else:
-                LOGGER.warning(f"line {counter} in chunk: {chunk_file} was not processed")
+                LOGGER.warning(
+                    f"line {counter} in chunk: {chunk_file} was not processed"
+                )
         LOGGER.info(f"finished parallel processing chunk: {chunk_file}")
         result.reset_index(inplace=True, drop=True)
         export_dataframe_to_excel(f"{OUTPUT_FILE_PREFIX}_{chunk_number}.xlsx", result)
@@ -127,6 +130,7 @@ def extract_keys_from_dataset(dataset: dict) -> dict:
     }
     return res
 
+
 def split_dataset_to_chunks() -> None:
     try:
         os.makedirs(CHUNKS)
@@ -135,6 +139,7 @@ def split_dataset_to_chunks() -> None:
     split = Split(NORMALIZED_DATASET, CHUNKS)
     split.bylinecount(LINES_PER_CHUNK)
     os.remove(f"{CHUNKS}/manifest")
+
 
 def remove_chunks() -> None:
     chunks: list[str] = os.listdir(CHUNKS)
@@ -149,4 +154,3 @@ def export_dataframe_to_excel(excel_file_name: str, df: pd.DataFrame) -> None:
 def clean_logs() -> None:
     with open(LOG_FILE, "w") as log_file:
         log_file.close()
-
