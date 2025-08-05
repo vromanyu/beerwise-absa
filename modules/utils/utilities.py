@@ -35,6 +35,6 @@ def dump_dataframe_to_sqlite(df: pd.DataFrame) -> None:
     df.to_sql(name=DATASET_TABLE_NAME, con=engine, if_exists="replace")
     LOGGER.info(f"dataset was dump to sqllite({DATABASE_URL}/{DATASET_TABLE_NAME})")
     
-def load_dataframe_from_databaes() -> pd.DataFrame:
+def load_dataframe_from_database() -> pd.DataFrame:
     LOGGER.info(f"loading dataset from {DATABASE_LOCATION}")
     return pd.read_sql_table(DATASET_TABLE_NAME, DATABASE_URL)
