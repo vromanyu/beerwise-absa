@@ -16,8 +16,7 @@ from modules.utils.utilities import (
 
 LOGGER: Logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
-DATASET: str = "../../dataset/dataset_portion_pre_processed.xlsx"
-MODEL_LOCATION: str = "../../models/fast_text_for_absa.bin"
+MODEL_LOCATION: str = "models/fast_text_for_absa.bin"
 NUMBER_OF_CORES: int = multiprocessing.cpu_count()
 
 
@@ -35,7 +34,7 @@ def fast_text_model_trainer():
         sg=1,
     )
     LOGGER.info("dumping model at /models")
-    fasttext_model.save("../../models/fast_text_for_absa.bin")
+    fasttext_model.save(f"{MODEL_LOCATION}")
     LOGGER.info("model saved")
 
 
