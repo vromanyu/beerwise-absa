@@ -181,3 +181,6 @@ models/
 
 #.vscode
 /.vscode/
+
+# SQLite Database
+*.db
