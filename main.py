@@ -3,7 +3,8 @@ import sys
 from pandas import DataFrame
 
 from modules.processing.processor import normalize_json_dataset, DATASET, create_processed_excel_files
-from modules.utils.utilities import dump_dataframe_to_sqlite, load_dataframe_from_databaes, load_pre_processed_dataset
+from modules.training.fast_text_training import fast_text_model_trainer
+from modules.utils.utilities import dump_dataframe_to_sqlite, load_dataframe_from_database, load_pre_processed_dataset
 
 
 def menu():
@@ -11,7 +12,8 @@ def menu():
           "2 - create_processed_excel_files\n" +
           "3 - load preprocessed dataset\n" +
           "4 - dump whole dataset to database\n" +
-          "5 - load dataframe from database\n")
+          "5 - load dataframe from database\n" +
+          "6 - train FastText model\n")
     option: str = input("Enter your option: ")
     if option == "1":
         normalize_json_dataset(DATASET)
@@ -30,9 +32,11 @@ def menu():
         df: DataFrame = load_pre_processed_dataset()
         dump_dataframe_to_sqlite(df)
     elif option == "5":
-        df: DataFrame = load_dataframe_from_databaes()
+        df: DataFrame = load_dataframe_from_database()
         print(df.head())
         print(df.info())
+    elif option == "6":
+        fast_text_model_trainer()
     else:
         print("invalid option. Exiting...")
 
