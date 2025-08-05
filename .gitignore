@@ -184,3 +184,6 @@ models/
 
 # SQLite Database
 *.db
+
+# Models Foler
+/models
