@@ -30,34 +30,37 @@ NUMBER_OF_CORES: int = multiprocessing.cpu_count()
 
 def normalize_json_dataset(file: str) -> None:
     counter: int = 0
-    with open(file) as json_file:
-        for line in json_file:
-            counter += 1
-            dataset_json: dict = ast.literal_eval(line)
-            if not dataset_json:
-                LOGGER.warning(
-                    f"parsed JSON at line: {counter} -- file: {json_file.name}  was empty"
+    try:
+        with open(file) as json_file:
+            for line in json_file:
+                counter += 1
+                dataset_json: dict = ast.literal_eval(line)
+                if not dataset_json:
+                    LOGGER.warning(
+                        f"parsed JSON at line: {counter} -- file: {json_file.name}  was empty"
+                    )
+                    continue
+                review_wrong_format_text: str = dataset_json["review/text"].lower().strip()
+                removed_non_alpha_chars: str = re.sub(
+                    r"[^a-zA-Z0-9\s]", "", review_wrong_format_text
                 )
-                continue
-            review_wrong_format_text: str = dataset_json["review/text"].lower().strip()
-            removed_non_alpha_chars: str = re.sub(
-                r"[^a-zA-Z0-9\s]", "", review_wrong_format_text
-            )
-            removed_digits: str = re.sub(r"\d+", "", removed_non_alpha_chars)
-            remove_new_lines_characters: str = re.sub(r"\n", " ", removed_digits)
-            remove_tab_characters: str = re.sub(r"\t", "", remove_new_lines_characters)
-            remove_excessive_backslashes: str = remove_tab_characters.replace("\\", "")
-            # escaped_characters_clean_text: str = bytes(remove_excessive_backslashes, "utf-8").decode("unicode_escape")
-            remove_excessive_spaces: str = " ".join(
-                re.split(r"\s+", remove_excessive_backslashes, flags=re.UNICODE)
-            )
-            dataset_json["review/text"] = remove_excessive_spaces
-            with open(
-                NORMALIZED_DATASET, "a", encoding="utf-8"
-            ) as normalized_dataset_json:
-                json.dump(dataset_json, normalized_dataset_json)
-                normalized_dataset_json.write("\n")
-                LOGGER.info(f"line {counter} written")
+                removed_digits: str = re.sub(r"\d+", "", removed_non_alpha_chars)
+                remove_new_lines_characters: str = re.sub(r"\n", " ", removed_digits)
+                remove_tab_characters: str = re.sub(r"\t", "", remove_new_lines_characters)
+                remove_excessive_backslashes: str = remove_tab_characters.replace("\\", "")
+                # escaped_characters_clean_text: str = bytes(remove_excessive_backslashes, "utf-8").decode("unicode_escape")
+                remove_excessive_spaces: str = " ".join(
+                    re.split(r"\s+", remove_excessive_backslashes, flags=re.UNICODE)
+                )
+                dataset_json["review/text"] = remove_excessive_spaces
+                with open(
+                    NORMALIZED_DATASET, "a", encoding="utf-8"
+                ) as normalized_dataset_json:
+                    json.dump(dataset_json, normalized_dataset_json)
+                    normalized_dataset_json.write("\n")
+                    LOGGER.info(f"line {counter} written")
+    except FileNotFoundError as e:
+        print(e)
 
 
 def create_processed_excel_files(limit: int = 0) -> None:
