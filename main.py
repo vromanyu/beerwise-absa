@@ -7,7 +7,7 @@ from modules.processing.processor import (
     DATASET,
     create_processed_excel_files,
 )
-from modules.training.fast_text_training import fast_text_model_trainer
+from modules.training.fast_text_training import fast_text_model_trainer, generate_similarity_scores
 from modules.utils.utilities import (
     dump_dataframe_to_sqlite,
     load_dataframe_from_database,
@@ -17,12 +17,13 @@ from modules.utils.utilities import (
 
 def menu():
     print(
-        "1 - normalize_json_dataset\n"
+          "1 - normalize_json_dataset\n"
         + "2 - create_processed_excel_files\n"
         + "3 - load preprocessed dataset\n"
         + "4 - dump whole dataset to database\n"
         + "5 - load dataframe from database\n"
         + "6 - train FastText model\n"
+        + "7 - generate similarity scores\n"
     )
     option: str = input("Enter your option: ")
     if option == "1":
@@ -47,6 +48,8 @@ def menu():
         print(df.info())
     elif option == "6":
         fast_text_model_trainer()
+    elif option == "7":
+        generate_similarity_scores()
     else:
         print("invalid option. Exiting...")
 
