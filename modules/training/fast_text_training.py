@@ -1,17 +1,14 @@
 import logging
 import multiprocessing
-import pprint
 from logging import Logger
 
 import gensim.models
 import pandas as pd
-from gensim import corpora
-from gensim.corpora import Dictionary
-from gensim.models import FastText, LdaMulticore
+from gensim.models import FastText
 
 from modules.utils.utilities import (
+    dump_dataframe_to_sqlite,
     load_dataframe_from_database,
-    load_pre_processed_dataset,
 )
 
 LOGGER: Logger = logging.getLogger(__name__)
@@ -38,39 +35,46 @@ def fast_text_model_trainer():
     LOGGER.info("model saved")
 
 
-def load_model(location: str):
-    model: FastText = gensim.models.FastText.load(location)
-    return model
+def load_model() -> FastText | None:
+    try:
+        model: FastText = gensim.models.FastText.load(MODEL_LOCATION)
+        return model
+    except FileNotFoundError as e:
+        print(e)
+        return None
 
 
-# def generate_similarity_scores() -> None:
+def generate_similarity_scores() -> None:
+    LOGGER.info("loading dataset from database")
+    df: pd.DataFrame = load_dataframe_from_database()
+
+    LOGGER.info("loading trained FastText model")
+    model: FastText | None = load_model()
+    if model is None:
+        return
+
+    aspects: list[str] = ["appearance", "aroma", "palate", "taste"]
+    for aspect in aspects:
+        LOGGER.info(f"finding similarity score for aspect: {aspect}")
+        df[f"{aspect}_similarity"] = df["processed_text"].apply(
+            lambda x: get_similarity(x, aspect, model)
+        )
+
+    dump_dataframe_to_sqlite(df)
+
+
+def get_similarity(text: list[str], aspect: str, model: FastText):
+    tokens_string = " ".join(text)
+    return model.wv.similarity(tokens_string, aspect)
+
+
+# Unused
+# def generate_and_print_topics():
 #     df: pd.DataFrame = load_pre_processed_dataset(DATASET)
-#     model: FastText = load_model("../../models/fast_text_for_absa.bin")
-#     aspects: list[str] = ["appearance", "aroma", "palate", "taste"]
-#     for aspect in aspects:
-#         df[f"{aspect}_similarity"] = df["processed_text"].apply(lambda x: get_similarity(x, aspect, model))
-#     export_dataframe_to_excel(DATASET, df)
-
-
-def generate_and_print_topics():
-    df: pd.DataFrame = load_pre_processed_dataset(DATASET)
-    data_words: list[list] = df["processed_text"].to_list()
-    id2word: Dictionary = corpora.Dictionary(data_words)
-    corpus: list[list[tuple[int, int]]] = [id2word.doc2bow(text) for text in data_words]
-    lda_model = LdaMulticore(
-        corpus=corpus, id2word=id2word, num_topics=10, iterations=400
-    )
-    pprint.pprint(lda_model.print_topics())
-
-
-def get_similarity(text: list, aspect: str, model: FastText):
-    text = " ".join(text)
-    return model.wv.similarity(text, aspect)
-
-
-if __name__ == "__main__":
-    # fast_text_model_trainer()
-    # generate_similarity_scores()
-    # df_creator.export_dataframe_to_excel("../../dataset/dataset_as_excel_all_rows_full_with_similarities.xlsx", df)
-    # generate_and_print_topics()
-    pass
+#     data_words: list[list] = df["processed_text"].to_list()
+#     id2word: Dictionary = corpora.Dictionary(data_words)
+#     corpus: list[list[tuple[int, int]]] = [id2word.doc2bow(text) for text in data_words]
+#     lda_model = LdaMulticore(
+#         corpus=corpus, id2word=id2word, num_topics=10, iterations=400
+#     )
+#     pprint.pprint(lda_model.print_topics())
