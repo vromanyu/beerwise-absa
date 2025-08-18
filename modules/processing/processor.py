@@ -7,6 +7,7 @@ import os
 import re
 from concurrent.futures import ThreadPoolExecutor
 from logging import Logger
+from typing import Optional
 
 import pandas as pd
 from filesplit.split import Split
@@ -86,7 +87,7 @@ def process_chunk(chunk_file: str, chunk_number: int, limit: int = 0) -> None:
             counter += 1
             if limit == counter:
                 break
-            processed_line: pd.DataFrame = process_line(line, counter)
+            processed_line: Optional[pd.DataFrame] = process_line(line, counter)
             if processed_line is not None:
                 result = pd.concat([result, processed_line], ignore_index=True)
             else:
@@ -99,7 +100,7 @@ def process_chunk(chunk_file: str, chunk_number: int, limit: int = 0) -> None:
         LOGGER.info(f"finished exporting chunk: {chunk_file}")
 
 
-def process_line(data: str, line: int) -> pd.DataFrame | None:
+def process_line(data: str, line: int) -> Optional[pd.DataFrame]:
     dataset_json = ast.literal_eval(data)
     if not dataset_json:
         LOGGER.warning(f"line {line}: can't be processed")
