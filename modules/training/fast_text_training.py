@@ -64,8 +64,7 @@ def generate_similarity_scores() -> None:
 
 
 def get_similarity(text: list[str], aspect: str, model: FastText):
-    tokens_string = " ".join(text)
-    return model.wv.n_similarity(tokens_string, aspect)
+    return model.wv.n_similarity(text, aspect)
 
 # Unused
 # def generate_and_print_topics():
