@@ -55,7 +55,7 @@ def normalize_json_dataset(file: str) -> None:
                 )
                 dataset_json["review/text"] = remove_excessive_spaces
                 with open(
-                    NORMALIZED_DATASET, "a", encoding="utf-8"
+                        NORMALIZED_DATASET, "a", encoding="utf-8"
                 ) as normalized_dataset_json:
                     json.dump(dataset_json, normalized_dataset_json)
                     normalized_dataset_json.write("\n")

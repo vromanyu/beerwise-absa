@@ -67,7 +67,6 @@ def get_similarity(text: list[str], aspect: str, model: FastText):
     tokens_string = " ".join(text)
     return model.wv.n_similarity(tokens_string, aspect)
 
-
 # Unused
 # def generate_and_print_topics():
 #     df: pd.DataFrame = load_pre_processed_dataset(DATASET)
