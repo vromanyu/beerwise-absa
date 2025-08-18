@@ -11,19 +11,20 @@ from modules.training.fast_text_training import fast_text_model_trainer, generat
 from modules.utils.utilities import (
     dump_dataframe_to_sqlite,
     load_dataframe_from_database,
-    load_pre_processed_dataset,
+    load_pre_processed_dataset, create_sample_dataset,
 )
 
 
 def menu():
     print(
-          "1 - normalize_json_dataset\n"
+        "1 - normalize_json_dataset\n"
         + "2 - create_processed_excel_files\n"
         + "3 - load preprocessed dataset\n"
         + "4 - dump whole dataset to database\n"
         + "5 - load dataframe from database\n"
         + "6 - train FastText model\n"
         + "7 - generate similarity scores\n"
+        + "8 - create sample dataset\n"
     )
     option: str = input("Enter your option: ")
     if option == "1":
@@ -43,13 +44,33 @@ def menu():
         df: DataFrame = load_pre_processed_dataset()
         dump_dataframe_to_sqlite(df)
     elif option == "5":
-        df: DataFrame = load_dataframe_from_database()
-        print(df.head())
+        is_sample: bool = False
+        try:
+            user_input = input("load the sample dataset (y/n): ")
+            if user_input.lower() == "y":
+                is_sample = True
+                print("loading sample dataset")
+            else:
+                print("loading full dataset")
+        except EOFError:
+            sys.exit()
+        df: DataFrame = load_dataframe_from_database(is_sample)
+        print(df.index)
         print(df.info())
+        print(df.describe())
     elif option == "6":
         fast_text_model_trainer()
     elif option == "7":
         generate_similarity_scores()
+    elif option == "8":
+        length: int = 50_000
+        try:
+            length = int(input("enter sample length (default: 50_000): "))
+        except ValueError:
+            length = 50_000
+        except EOFError:
+            sys.exit()
+        create_sample_dataset(length)
     else:
         print("invalid option. Exiting...")
 
