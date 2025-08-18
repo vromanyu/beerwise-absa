@@ -36,6 +36,7 @@ def fast_text_model_trainer():
 
 
 def load_model() -> FastText | None:
+    LOGGER.info("loading trained FastText model")
     try:
         model: FastText = gensim.models.FastText.load(MODEL_LOCATION)
         return model
@@ -45,10 +46,8 @@ def load_model() -> FastText | None:
 
 
 def generate_similarity_scores() -> None:
-    LOGGER.info("loading dataset from database")
     df: pd.DataFrame = load_dataframe_from_database()
 
-    LOGGER.info("loading trained FastText model")
     model: FastText | None = load_model()
     if model is None:
         return
