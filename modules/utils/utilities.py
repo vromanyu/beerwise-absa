@@ -21,7 +21,6 @@ logging.basicConfig(level=logging.INFO)
 
 def load_pre_processed_dataset() -> pd.DataFrame:
     aggregated_df: pd.DataFrame = pd.DataFrame()
-    # df: pd.DataFrame = pd.read_excel(dataset)
     datasets: list[str] = os.listdir(DATASET_LOCATION)
     for dataset in datasets:
         if dataset.startswith(PRE_PROCESSED_PREFIX):
@@ -29,6 +28,8 @@ def load_pre_processed_dataset() -> pd.DataFrame:
             df: pd.DataFrame = pd.read_excel(f"dataset/{dataset}")
             aggregated_df = pd.concat([aggregated_df, df])
 
+    aggregated_df["processed_text"] = aggregated_df["processed_text"].apply(ast.literal_eval)
+    aggregated_df = aggregated_df[aggregated_df["processed_text"].apply(lambda x: len(x) > 0)]
     return aggregated_df
 
 
@@ -40,6 +41,7 @@ def create_database_engine(is_sample: bool = False) -> Engine:
 
 
 def dump_dataframe_to_sqlite(df: pd.DataFrame, is_sample: bool = False) -> None:
+    df["processed_text"] = df["processed_text"].apply(str)
     if is_sample:
         LOGGER.info("loaded sample dataset")
         engine: Engine = create_database_engine(is_sample=True)
