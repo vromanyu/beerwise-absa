@@ -1,3 +1,5 @@
+import ast
+
 from sqlalchemy import Engine, create_engine
 from logging import Logger
 import logging
@@ -53,10 +55,14 @@ def dump_dataframe_to_sqlite(df: pd.DataFrame, is_sample: bool = False) -> None:
 def load_dataframe_from_database(is_sample: bool = False) -> pd.DataFrame:
     if is_sample:
         LOGGER.info(f"loading sample dataset from {SAMPLE_DATABASE_LOCATION}")
-        return pd.read_sql_table(SAMPLE_DATASET_TABLE_NAME, SAMPLE_DATABASE_URL)
+        df: pd.DataFrame = pd.read_sql_table(SAMPLE_DATASET_TABLE_NAME, SAMPLE_DATABASE_URL)
+        df["processed_text"] = df["processed_text"].apply(ast.literal_eval)
+        return df
     else:
         LOGGER.info(f"loading dataset from {DATABASE_LOCATION}")
-        return pd.read_sql_table(DATASET_TABLE_NAME, DATABASE_URL)
+        df: pd.DataFrame = pd.read_sql_table(DATASET_TABLE_NAME, DATABASE_URL)
+        df["processed_text"] = df["processed_text"].apply(ast.literal_eval)
+        return df
 
 
 def create_sample_dataset(sample_length: int) -> None:
