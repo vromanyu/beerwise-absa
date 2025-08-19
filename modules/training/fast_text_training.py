@@ -1,6 +1,7 @@
 import logging
 import multiprocessing
 from logging import Logger
+from math import floor
 
 import gensim.models
 import pandas as pd
@@ -59,7 +60,12 @@ def generate_similarity_scores_and_labels() -> None:
         df[f"{aspect}_similarity"] = df["processed_text"].apply(
             lambda x: get_similarity(x, aspect, model)
         )
+        LOGGER.info(f"checking where '{aspect}' is mentioned using threshold: {SIMILARITY_THRESHOLD}")
         df[f"{aspect}_mentioned"] = df.apply(lambda row: is_aspect_mentioned(row, aspect), axis=1)
+
+    for aspect in aspects:
+        LOGGER.info(f"assigning sentiment label to aspect: {aspect}")
+        df[f"{aspect}_sentiment"] = df.apply(lambda row: rating_to_sentiment(row[f"{aspect}"]) if row[f"{aspect}_mentioned"] else -2, axis=1)
 
     dump_dataframe_to_sqlite(df)
 
@@ -69,6 +75,16 @@ def get_similarity(text: list[str], aspect: str, model: FastText):
 
 def is_aspect_mentioned(row: pd.Series, aspect: str) -> bool:
     return row[f"{aspect}_similarity"] >= SIMILARITY_THRESHOLD
+
+def rating_to_sentiment(rating: float) -> int:
+    rating = floor(rating)
+    if rating >= 4:
+        return 1 # positive label
+    elif rating == 3:
+        return 0 # neutral label
+    else:
+        return -1
+
 
 # Unused
 # def generate_and_print_topics():
