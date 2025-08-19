@@ -2,6 +2,7 @@ import sys
 
 from pandas import DataFrame
 
+from modules.algorithms.logistic_regression import logistic_regression_trainer
 from modules.processing.processor import (
     normalize_json_dataset,
     DATASET,
@@ -23,8 +24,9 @@ def menu():
         + "4 - dump whole dataset to database\n"
         + "5 - load dataframe from database\n"
         + "6 - train FastText model\n"
-        + "7 - generate similarity scores\n"
+        + "7 - generate similarity scores and add sentiment labels\n"
         + "8 - create sample dataset\n"
+        + "9 - train Logistic Regression model (multi-output classifier)\n"
     )
     option: str = input("Enter your option: ")
     if option == "1":
@@ -71,6 +73,8 @@ def menu():
         except EOFError:
             sys.exit()
         create_sample_dataset(length)
+    elif option == "9":
+        logistic_regression_trainer()
     else:
         print("invalid option. Exiting...")
 
