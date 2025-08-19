@@ -15,6 +15,7 @@ LOGGER: Logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 MODEL_LOCATION: str = "models/fast_text_for_absa.bin"
 NUMBER_OF_CORES: int = multiprocessing.cpu_count()
+SIMILARITY_THRESHOLD: float = 0.4
 
 
 def fast_text_model_trainer():
@@ -58,12 +59,16 @@ def generate_similarity_scores() -> None:
         df[f"{aspect}_similarity"] = df["processed_text"].apply(
             lambda x: get_similarity(x, aspect, model)
         )
+        df[f"{aspect}_mentioned"] = df.apply(lambda row: is_aspect_mentioned(row, aspect), axis=1)
 
     dump_dataframe_to_sqlite(df)
 
 
 def get_similarity(text: list[str], aspect: str, model: FastText):
     return model.wv.n_similarity(text, aspect)
+
+def is_aspect_mentioned(row: pd.Series, aspect: str) -> bool:
+    return row[f"{aspect}_similarity"] >= SIMILARITY_THRESHOLD
 
 # Unused
 # def generate_and_print_topics():
