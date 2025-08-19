@@ -46,7 +46,7 @@ def load_model() -> FastText | None:
         return None
 
 
-def generate_similarity_scores() -> None:
+def generate_similarity_scores_and_labels() -> None:
     df: pd.DataFrame = load_dataframe_from_database()
 
     model: FastText | None = load_model()

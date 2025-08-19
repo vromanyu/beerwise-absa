@@ -7,7 +7,7 @@ from modules.processing.processor import (
     DATASET,
     create_processed_excel_files,
 )
-from modules.training.fast_text_training import fast_text_model_trainer, generate_similarity_scores
+from modules.training.fast_text_training import fast_text_model_trainer, generate_similarity_scores_and_labels
 from modules.utils.utilities import (
     dump_dataframe_to_sqlite,
     load_dataframe_from_database,
@@ -61,7 +61,7 @@ def menu():
     elif option == "6":
         fast_text_model_trainer()
     elif option == "7":
-        generate_similarity_scores()
+        generate_similarity_scores_and_labels()
     elif option == "8":
         length: int = 50_000
         try:
