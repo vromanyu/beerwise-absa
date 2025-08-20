@@ -88,6 +88,7 @@ def menu():
         logistic_regression_trainer()
     else:
         print("invalid option. Exiting...")
+        sys.exit()
 
 
 def main():
