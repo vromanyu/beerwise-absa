@@ -1,18 +1,18 @@
 import re
-import string
+import unicodedata as uni
 
 import demoji
 import nltk
 import pandas as pd
-import unicodedata as uni
 from nltk import WordNetLemmatizer
 from nltk.corpus import stopwords
 from spellchecker import SpellChecker
 
 DATASET: str = "../../dataset/dataset_as_excel_mandatory_rows.xlsx"
 
-PUNCTUATION: list = list(string.punctuation)
 STOPWORDS: set = set(stopwords.words("english"))
+CLEANUP_REGEX = re.compile(r"http\S+|\d+|[^a-z\s]", flags=re.UNICODE)
+WHITESPACE_REGEX = re.compile(r"\s+", flags=re.UNICODE)
 
 
 def download_required_runtime_packages() -> None:
@@ -32,6 +32,7 @@ def handle_emojis(text: str) -> str:
     return text
 
 
+# Unused (very slow)
 def handle_spellchecking(text: str) -> str:
     tokens = re.findall("[a-zA-Z]+", text)
     spell = SpellChecker(language="en")
@@ -44,19 +45,19 @@ def handle_spellchecking(text: str) -> str:
 
 
 def handle_pre_processing(text: str, lemmatize: bool = False) -> list[str]:
-    escape_characters_and_urls_removed: str = text.replace(r"http\S+", "")
-    normalized_text: str = uni.normalize("NFKD", escape_characters_and_urls_removed)
-    emojis_removed: str = handle_emojis(normalized_text)
-    # spellchecked: str = handle_spellchecking(emojis_removed)
-    tokens = nltk.word_tokenize(emojis_removed)
-    processed_tokens = [
+    text = uni.normalize("NFKD", text.lower().strip())
+    text = handle_emojis(text)
+    text = CLEANUP_REGEX.sub("", text)
+    text = WHITESPACE_REGEX.sub(" ", text).strip()
+    tokens = nltk.word_tokenize(text)
+    processed_tokens: list[str] = [
         str(token)
         for token in tokens
-        if token not in STOPWORDS and token not in PUNCTUATION
+        if token not in STOPWORDS
     ]
     if lemmatize:
         wordnet_lemmatizer = WordNetLemmatizer()
-        lemmatized_tokens = [
+        lemmatized_tokens: list[str] = [
             str(wordnet_lemmatizer.lemmatize(token)) for token in processed_tokens
         ]
         return lemmatized_tokens

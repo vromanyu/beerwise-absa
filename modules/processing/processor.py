@@ -4,7 +4,6 @@ import json
 import logging
 import multiprocessing
 import os
-import re
 from concurrent.futures import ThreadPoolExecutor
 from logging import Logger
 from typing import Optional
@@ -17,7 +16,7 @@ from modules.processing.preprocessing import (
 )
 
 DATASET: str = "dataset/beeradvocate.json"
-NORMALIZED_DATASET: str = "dataset/beeradvocate_normalized.json"
+PARSED_DATASET: str = "dataset/parsed_dataset.json"
 OUTPUT_FILE_PREFIX: str = "dataset/dataset_portion_pre_processed_"
 CHUNKS: str = "dataset/chunks"
 LINES_PER_CHUNK: int = 500_000
@@ -29,7 +28,7 @@ logging.basicConfig(level=logging.INFO)
 NUMBER_OF_CORES: int = multiprocessing.cpu_count()
 
 
-def normalize_json_dataset(file: str) -> None:
+def parse_json_dataset(file: str) -> None:
     counter: int = 0
     try:
         with open(file) as json_file:
@@ -41,25 +40,11 @@ def normalize_json_dataset(file: str) -> None:
                         f"parsed JSON at line: {counter} -- file: {json_file.name}  was empty"
                     )
                     continue
-                review_wrong_format_text: str = dataset_json["review/text"].lower().strip()
-                removed_non_alpha_chars: str = re.sub(
-                    r"[^a-zA-Z0-9\s]", "", review_wrong_format_text
-                )
-                removed_digits: str = re.sub(r"\d+", "", removed_non_alpha_chars)
-                remove_new_lines_characters: str = re.sub(r"\n", " ", removed_digits)
-                remove_tab_characters: str = re.sub(r"\t", "", remove_new_lines_characters)
-                remove_excessive_backslashes: str = remove_tab_characters.replace("\\", "")
-                # escaped_characters_clean_text: str = bytes(remove_excessive_backslashes, "utf-8").decode("unicode_escape")
-                remove_excessive_spaces: str = " ".join(
-                    re.split(r"\s+", remove_excessive_backslashes, flags=re.UNICODE)
-                )
-                dataset_json["review/text"] = remove_excessive_spaces
                 with open(
-                        NORMALIZED_DATASET, "a", encoding="utf-8"
-                ) as normalized_dataset_json:
-                    json.dump(dataset_json, normalized_dataset_json)
-                    normalized_dataset_json.write("\n")
-                    LOGGER.info(f"line {counter} written")
+                        PARSED_DATASET, "a", encoding="utf-8"
+                ) as parsed_dataset_json:
+                    json.dump(dataset_json, parsed_dataset_json)
+                    parsed_dataset_json.write("\n")
     except FileNotFoundError as e:
         print(e)
 
@@ -107,7 +92,6 @@ def process_line(data: str, line: int) -> Optional[pd.DataFrame]:
         return None
     try:
         result: pd.DataFrame = pd.DataFrame()
-        LOGGER.info(f"processing line: {line}")
         data_json_transform = extract_keys_from_dataset(dataset_json)
         json_df = pd.DataFrame([data_json_transform])
         json_df["processed_text"] = json_df["text"].apply(handle_pre_processing)
@@ -140,7 +124,7 @@ def split_dataset_to_chunks() -> None:
         os.makedirs(CHUNKS)
     except FileExistsError:
         LOGGER.warning("chunks folder already exists")
-    split = Split(NORMALIZED_DATASET, CHUNKS)
+    split = Split(PARSED_DATASET, CHUNKS)
     split.bylinecount(LINES_PER_CHUNK)
     os.remove(f"{CHUNKS}/manifest")
 

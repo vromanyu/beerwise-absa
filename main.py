@@ -4,7 +4,7 @@ from pandas import DataFrame
 
 from modules.algorithms.logistic_regression import logistic_regression_trainer
 from modules.processing.processor import (
-    normalize_json_dataset,
+    parse_json_dataset,
     DATASET,
     create_processed_excel_files,
 )
@@ -17,20 +17,20 @@ from modules.utils.utilities import (
 
 
 def menu():
-    print(
-        "1 - normalize_json_dataset\n"
-        + "2 - create_processed_excel_files\n"
-        + "3 - load preprocessed dataset\n"
-        + "4 - dump whole dataset to database\n"
-        + "5 - load dataframe from database\n"
-        + "6 - train FastText model\n"
-        + "7 - generate similarity scores and add sentiment labels\n"
-        + "8 - create sample dataset\n"
-        + "9 - train Logistic Regression model (multi-output classifier)\n"
-    )
+    print(""
+          + "1 - parse_json_dataset\n"
+          + "2 - create_processed_excel_files\n"
+          + "3 - load preprocessed dataset\n"
+          + "4 - dump whole dataset to database\n"
+          + "5 - load dataframe from database\n"
+          + "6 - train FastText model\n"
+          + "7 - generate similarity scores and add sentiment labels\n"
+          + "8 - create sample dataset\n"
+          + "9 - train Logistic Regression model (multi-output classifier)\n"
+          )
     option: str = input("Enter your option: ")
     if option == "1":
-        normalize_json_dataset(DATASET)
+        parse_json_dataset(DATASET)
     elif option == "2":
         limit: int = 0
         try:
