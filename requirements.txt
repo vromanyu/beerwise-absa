@@ -1,3 +1,4 @@
+imbalanced-learn
 scikit-learn
 annotated-types==0.7.0
 blis==1.2.1
