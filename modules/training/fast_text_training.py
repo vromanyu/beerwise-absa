@@ -63,7 +63,7 @@ def generate_similarity_scores_and_labels(is_sample: bool = False) -> None:
 
     aspects: list[str] = ["appearance", "aroma", "palate", "taste"]
     for aspect in aspects:
-        LOGGER.info(f"finding similarity score for aspect: {aspect} using threshold: {SIMILARITY_THRESHOLD}")
+        LOGGER.info(f"finding similarity score for aspect: {aspect}")
         df[f"{aspect}_similarity"] = df["processed_text"].apply(
             lambda x: get_similarity(x, aspect, model)
         )
