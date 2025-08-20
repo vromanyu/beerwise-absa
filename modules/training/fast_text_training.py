@@ -16,7 +16,7 @@ LOGGER: Logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 MODEL_LOCATION: str = "models/fast_text_for_absa.bin"
 NUMBER_OF_CORES: int = multiprocessing.cpu_count()
-SIMILARITY_THRESHOLD: float = 0.4
+SIMILARITY_THRESHOLD: float = 0.25
 
 
 def fast_text_model_trainer():
@@ -47,13 +47,15 @@ def load_model() -> FastText | None:
         return None
 
 
-def generate_similarity_scores_and_labels() -> None:
-    df: pd.DataFrame = load_dataframe_from_database()
+def generate_similarity_scores_and_labels(is_sample: bool = False) -> None:
+    df: pd.DataFrame = load_dataframe_from_database(is_sample)
 
     model: FastText | None = load_model()
     if model is None:
+        LOGGER.error("model was not found or trained")
         return
 
+    LOGGER.info(f"Threshold: {SIMILARITY_THRESHOLD}")
     aspects: list[str] = ["appearance", "aroma", "palate", "taste"]
     for aspect in aspects:
         LOGGER.info(f"finding similarity score for aspect: {aspect}")
@@ -67,7 +69,7 @@ def generate_similarity_scores_and_labels() -> None:
         LOGGER.info(f"assigning sentiment label to aspect: {aspect}")
         df[f"{aspect}_sentiment"] = df.apply(lambda row: rating_to_sentiment(row[f"{aspect}"]) if row[f"{aspect}_mentioned"] else -2, axis=1)
 
-    dump_dataframe_to_sqlite(df)
+    dump_dataframe_to_sqlite(df, is_sample)
 
 
 def get_similarity(text: list[str], aspect: str, model: FastText):

@@ -51,9 +51,6 @@ def menu():
             user_input = input("load the sample dataset (y/n): ")
             if user_input.lower() == "y":
                 is_sample = True
-                print("loading sample dataset")
-            else:
-                print("loading full dataset")
         except EOFError:
             sys.exit()
         df: DataFrame = load_dataframe_from_database(is_sample)
@@ -63,7 +60,14 @@ def menu():
     elif option == "6":
         fast_text_model_trainer()
     elif option == "7":
-        generate_similarity_scores_and_labels()
+        is_sample: bool = False
+        try:
+            user_input = input("use the sample dataset (y/n): ")
+            if user_input.lower() == "y":
+                is_sample = True
+        except EOFError:
+            sys.exit()
+        generate_similarity_scores_and_labels(is_sample)
     elif option == "8":
         length: int = 50_000
         try:
