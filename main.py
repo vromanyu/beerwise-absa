@@ -58,7 +58,14 @@ def menu():
         print(df.info())
         print(df.describe())
     elif option == "6":
-        fast_text_model_trainer()
+        is_sample: bool = False
+        try:
+            user_input = input("use the sample dataset (y/n): ")
+            if user_input.lower() == "y":
+                is_sample = True
+        except EOFError:
+            sys.exit()
+        fast_text_model_trainer(is_sample)
     elif option == "7":
         is_sample: bool = False
         try:

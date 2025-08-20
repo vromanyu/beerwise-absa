@@ -15,12 +15,13 @@ from modules.utils.utilities import (
 LOGGER: Logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 MODEL_LOCATION: str = "models/fast_text_for_absa.bin"
+MODEL_SAMPLE_LOCATION: str = "models/fast_text_for_absa_sample.bin"
 NUMBER_OF_CORES: int = multiprocessing.cpu_count()
 SIMILARITY_THRESHOLD: float = 0.25
 
 
-def fast_text_model_trainer():
-    df: pd.DataFrame = load_dataframe_from_database()
+def fast_text_model_trainer(is_sample: bool = False) -> None:
+    df: pd.DataFrame = load_dataframe_from_database(is_sample)
     LOGGER.info("loading all 'processed_text'")
     data_words: list[list] = df["processed_text"].to_list()
     LOGGER.info("initialize model training")
@@ -33,7 +34,10 @@ def fast_text_model_trainer():
         sg=1,
     )
     LOGGER.info("dumping model at /models")
-    fasttext_model.save(f"{MODEL_LOCATION}")
+    if is_sample:
+        fasttext_model.save(f"{MODEL_SAMPLE_LOCATION}")
+    else:
+        fasttext_model.save(f"{MODEL_LOCATION}")
     LOGGER.info("model saved")
 
 
@@ -55,10 +59,9 @@ def generate_similarity_scores_and_labels(is_sample: bool = False) -> None:
         LOGGER.error("model was not found or trained")
         return
 
-    LOGGER.info(f"Threshold: {SIMILARITY_THRESHOLD}")
     aspects: list[str] = ["appearance", "aroma", "palate", "taste"]
     for aspect in aspects:
-        LOGGER.info(f"finding similarity score for aspect: {aspect}")
+        LOGGER.info(f"finding similarity score for aspect: {aspect} using threshold: {SIMILARITY_THRESHOLD}")
         df[f"{aspect}_similarity"] = df["processed_text"].apply(
             lambda x: get_similarity(x, aspect, model)
         )
