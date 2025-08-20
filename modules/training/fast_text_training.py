@@ -16,7 +16,7 @@ LOGGER: Logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 MODEL_LOCATION: str = "models/fast_text_for_absa.bin"
 NUMBER_OF_CORES: int = multiprocessing.cpu_count()
-SIMILARITY_THRESHOLD: float = 0.4
+SIMILARITY_THRESHOLD: float = 0.25
 
 
 def fast_text_model_trainer():
@@ -47,11 +47,12 @@ def load_model() -> FastText | None:
         return None
 
 
-def generate_similarity_scores_and_labels() -> None:
-    df: pd.DataFrame = load_dataframe_from_database()
+def generate_similarity_scores_and_labels(is_sample: bool = False) -> None:
+    df: pd.DataFrame = load_dataframe_from_database(is_sample)
 
     model: FastText | None = load_model()
     if model is None:
+        LOGGER.error("model was not found or trained")
         return
 
     aspects: list[str] = ["appearance", "aroma", "palate", "taste"]
