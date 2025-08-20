@@ -85,7 +85,14 @@ def menu():
             sys.exit()
         create_sample_dataset(length)
     elif option == "9":
-        logistic_regression_trainer()
+        is_sample: bool = False
+        try:
+            user_input = input("use the sample dataset (y/n): ")
+            if user_input.lower() == "y":
+                is_sample = True
+        except EOFError:
+            sys.exit()
+        logistic_regression_trainer(is_sample)
     else:
         print("invalid option. Exiting...")
         sys.exit()
