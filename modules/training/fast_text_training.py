@@ -41,22 +41,24 @@ def fast_text_model_trainer(is_sample: bool = False) -> None:
     LOGGER.info("model saved")
 
 
-def load_model() -> FastText | None:
-    LOGGER.info("loading trained FastText model")
+def load_model(is_sample: bool = False) -> FastText | None:
     try:
-        model: FastText = gensim.models.FastText.load(MODEL_LOCATION)
-        return model
-    except FileNotFoundError as e:
-        print(e)
+        if is_sample:
+            LOGGER.info("loading FastText model")
+            return gensim.models.FastText.load(MODEL_SAMPLE_LOCATION)
+        else:
+            LOGGER.info("loading sample FastText model")
+            return gensim.models.FastText.load(MODEL_LOCATION)
+    except FileNotFoundError:
+        LOGGER.error("model was not found or trainer")
         return None
 
 
 def generate_similarity_scores_and_labels(is_sample: bool = False) -> None:
     df: pd.DataFrame = load_dataframe_from_database(is_sample)
 
-    model: FastText | None = load_model()
+    model: FastText | None = load_model(is_sample)
     if model is None:
-        LOGGER.error("model was not found or trained")
         return
 
     aspects: list[str] = ["appearance", "aroma", "palate", "taste"]
