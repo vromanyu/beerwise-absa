@@ -2,13 +2,13 @@ import sys
 
 from pandas import DataFrame
 
-from modules.algorithms.logistic_regression import logistic_regression_trainer
+from modules.models.logistic_regression import logistic_regression_trainer
 from modules.processing.processor import (
     parse_json_dataset,
     DATASET,
     create_processed_excel_files,
 )
-from modules.training.fast_text_training import fast_text_model_trainer, generate_similarity_scores_and_labels
+from modules.models.fast_text_training import fast_text_model_trainer, generate_similarity_scores_and_labels
 from modules.utils.utilities import (
     dump_dataframe_to_sqlite,
     load_dataframe_from_database,
