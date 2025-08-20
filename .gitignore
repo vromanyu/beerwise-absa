@@ -174,7 +174,7 @@ cython_debug/
 .pypirc
 
 # Models folder
-models/
+models/**
 
 # Dataset
 /dataset/*.json
@@ -184,6 +184,3 @@ models/
 
 # SQLite Database
 *.db
-
-# Models Foler
-/models
