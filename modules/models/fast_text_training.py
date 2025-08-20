@@ -73,7 +73,6 @@ def generate_similarity_scores_and_labels(is_sample: bool = False) -> None:
         LOGGER.info(f"checking where '{aspect}' is mentioned using threshold: {SIMILARITY_THRESHOLD}")
         df[f"{aspect}_mentioned"] = df.apply(lambda row: is_aspect_mentioned(row, aspect), axis=1)
 
-    for aspect in aspects:
         LOGGER.info(f"assigning sentiment label to aspect: {aspect}")
         df[f"{aspect}_sentiment"] = df.apply(
             lambda row: rating_to_sentiment(row[f"{aspect}"]) if row[f"{aspect}_mentioned"] else -2, axis=1)
@@ -90,13 +89,13 @@ def is_aspect_mentioned(row: pd.Series, aspect: str) -> bool:
 
 
 def rating_to_sentiment(rating: float) -> int:
-    rating = floor(rating)
-    if rating >= 4:
-        return 1  # positive label
-    elif rating == 3:
-        return 0  # neutral label
-    else:
+    if rating >= 4.0:
+        return 1
+    elif rating <= 2.0:
         return -1
+    else:
+        return 0
+
 
 # Unused
 # def generate_and_print_topics():
