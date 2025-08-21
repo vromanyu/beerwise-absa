@@ -3,6 +3,7 @@ import sys
 from pandas import DataFrame
 
 from modules.models.logistic_regression import logistic_regression_trainer
+from modules.models.svm import svm_trainer
 from modules.processing.processor import (
     parse_json_dataset,
     DATASET,
@@ -26,7 +27,8 @@ def menu():
           + "6 - train FastText model\n"
           + "7 - generate similarity scores and add sentiment labels\n"
           + "8 - create sample dataset\n"
-          + "9 - train Logistic Regression model (multi-output classifier)\n"
+          + "9 - train Logistic Regression models (one model per aspect)\n"
+          + "10 - train SVM models (one model per aspect)\n"
           )
     option: str = input("Enter your option: ")
     if option == "1":
@@ -93,6 +95,15 @@ def menu():
         except EOFError:
             sys.exit()
         logistic_regression_trainer(is_sample)
+    elif option == "10":
+        is_sample: bool = False
+        try:
+            user_input = input("use the sample dataset (y/n): ")
+            if user_input.lower() == "y":
+                is_sample = True
+        except EOFError:
+            sys.exit()
+        svm_trainer(is_sample)
     else:
         print("invalid option. Exiting...")
         sys.exit()
