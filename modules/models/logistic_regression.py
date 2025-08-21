@@ -18,13 +18,22 @@ MODELS_DIRECTORY: str = "./models/logistic_regression"
 
 def logistic_regression_trainer(is_sample: bool = False) -> None:
     df = load_dataframe_from_database(is_sample)
-    vectorizer = TfidfVectorizer(max_features=5000, ngram_range=(1, 2))
+
+    # Suggestion 1: Enhanced TF-IDF settings
+    vectorizer = TfidfVectorizer(
+        max_features=5000,
+        ngram_range=(1, 3),          # Include trigrams
+        sublinear_tf=True,           # Dampens overly frequent terms
+        min_df=5,                    # Ignore rare terms
+        max_df=0.8                   # Ignore overly common terms
+    )
+
     for aspect in ['appearance', 'aroma', 'palate', 'taste']:
         train_logistic_model(df, aspect, vectorizer)
-    if is_sample:
-        joblib.dump(vectorizer, f"{MODELS_DIRECTORY}/sample/logistic_regression_vectorizer.pkl")
-    else:
-        joblib.dump(vectorizer, f"{MODELS_DIRECTORY}/full/logistic_regression_vectorizer.pkl")
+
+    vectorizer_path = f"{MODELS_DIRECTORY}/{'sample' if is_sample else 'full'}/logistic_regression_vectorizer.pkl"
+    joblib.dump(vectorizer, vectorizer_path)
+
 
 
 def train_logistic_model(df: pd.DataFrame, aspect: str, vectorizer: TfidfVectorizer, is_sample=False) -> None:
@@ -44,16 +53,21 @@ def train_logistic_model(df: pd.DataFrame, aspect: str, vectorizer: TfidfVectori
         X, y, stratify=y, test_size=0.2, random_state=42
     )
 
-    model = LogisticRegression(max_iter=1000, class_weight="balanced")
+    # Suggestion 3: Tuned Logistic Regression
+    model = LogisticRegression(
+        max_iter=1000,
+        class_weight="balanced",
+        C=0.5,                      # Stronger regularization
+        solver="saga"               # Better for sparse data
+    )
+
     model.fit(X_train, y_train)
     y_pred = model.predict(X_test)
 
     print(f"\nAspect: {aspect} — Upsampled")
     print(classification_report(y_test, y_pred))
 
-    if is_sample:
-        os.makedirs(f"{MODELS_DIRECTORY}/sample", exist_ok=True)
-        joblib.dump(model, f"{MODELS_DIRECTORY}/sample/{aspect}_logistic_regression_model.pkl")
-    else:
-        os.makedirs(f"{MODELS_DIRECTORY}/full", exist_ok=True)
-        joblib.dump(model, f"{MODELS_DIRECTORY}/full/{aspect}_logistic_regression_model.pkl")
+    model_path = f"{MODELS_DIRECTORY}/{'sample' if is_sample else 'full'}/{aspect}_logistic_regression_model.pkl"
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+    joblib.dump(model, model_path)
+
