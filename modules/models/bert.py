@@ -1,0 +1,292 @@
+import logging
+import random
+from collections import Counter
+
+import numpy as np
+import pandas as pd
+import torch
+from sklearn.metrics import classification_report, f1_score
+from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.utils import resample
+from sklearn.utils.class_weight import compute_class_weight
+from torch import nn, optim
+from torch.amp import autocast
+from torch.utils.data import Dataset, DataLoader
+from tqdm import tqdm
+from transformers import AutoModel, AutoTokenizer
+
+from modules.utils.utilities import load_dataframe_from_database
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s | %(levelname)s | %(message)s',
+    handlers=[
+        logging.FileHandler("absa_training.log"),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger()
+
+
+def set_seed(seed=42):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+def upsample_to_match(df, label_col):
+    grouped = df.groupby(label_col)
+    target_size = grouped.size().max()
+    balanced_groups = [
+        resample(group, replace=True, n_samples=target_size, random_state=42)
+        for _, group in grouped
+    ]
+    return pd.concat(balanced_groups).sample(frac=1, random_state=42).reset_index(drop=True)
+
+
+def prepare_data(df):
+    sentiment_map = {-1: 0, 0: 1, 1: 2}
+    df['appearance_label'] = df['appearance_sentiment'].map(sentiment_map)
+    df['palate_label'] = df['palate_sentiment'].map(sentiment_map)
+
+    df['appearance_label'] = df['appearance_label'].apply(lambda x: x[0] if isinstance(x, list) else x)
+    df['palate_label'] = df['palate_label'].apply(lambda x: x[0] if isinstance(x, list) else x)
+    df['processed_text'] = df['processed_text'].apply(lambda x: ' '.join(x) if isinstance(x, list) else str(x))
+
+    df = df.dropna(subset=['appearance_label', 'palate_label'])
+
+    # Upsample based on joint label
+    df['joint_label'] = df['appearance_label'].astype(str) + "_" + df['palate_label'].astype(str)
+    df = upsample_to_match(df, 'joint_label')
+
+    strat_split = StratifiedShuffleSplit(n_splits=1, test_size=0.15, random_state=42)
+    for train_idx, test_idx in strat_split.split(df, df['joint_label']):
+        train_df = df.iloc[train_idx].copy()
+        test_df = df.iloc[test_idx].copy()
+
+    val_split = StratifiedShuffleSplit(n_splits=1, test_size=0.15, random_state=42)
+    for train_idx, val_idx in val_split.split(train_df, train_df['joint_label']):
+        final_train_df = train_df.iloc[train_idx].copy()
+        val_df = train_df.iloc[val_idx].copy()
+
+    return final_train_df, val_df, test_df
+
+
+class ABSA_Dataset(Dataset):
+    def __init__(self, dataframe, tokenizer):
+        self.texts = dataframe['processed_text'].tolist()
+        self.appearance_labels = dataframe['appearance_label'].tolist()
+        self.palate_labels = dataframe['palate_label'].tolist()
+        self.tokenizer = tokenizer
+
+    def __len__(self):
+        return len(self.texts)
+
+    def __getitem__(self, idx):
+        encoding = self.tokenizer(
+            self.texts[idx],
+            truncation=True,
+            padding='max_length',
+            max_length=256,
+            return_tensors="pt"
+        )
+        return {
+            'input_ids': encoding['input_ids'][0],
+            'attention_mask': encoding['attention_mask'][0],
+            'appearance_label': torch.tensor(self.appearance_labels[idx], dtype=torch.long),
+            'palate_label': torch.tensor(self.palate_labels[idx], dtype=torch.long)
+        }
+
+
+class MultiAspectSentimentModel(nn.Module):
+    def __init__(self, model_name="distilbert-base-uncased"):
+        super().__init__()
+        self.bert = AutoModel.from_pretrained(model_name)
+        hidden_size = self.bert.config.hidden_size
+
+        self.shared_dropout = nn.Dropout(0.3)
+
+        self.appearance_head = nn.Sequential(
+            nn.LayerNorm(hidden_size),
+            nn.Dropout(0.3),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, 3)
+        )
+
+        self.palate_head = nn.Sequential(
+            nn.LayerNorm(hidden_size),
+            nn.Dropout(0.3),
+            nn.Linear(hidden_size, hidden_size),
+            nn.ReLU(),
+            nn.Linear(hidden_size, 3)
+        )
+
+    def forward(self, input_ids, attention_mask):
+        outputs = self.bert(input_ids=input_ids, attention_mask=attention_mask)
+        cls_output = self.shared_dropout(outputs.last_hidden_state[:, 0, :])
+        return self.appearance_head(cls_output), self.palate_head(cls_output)
+
+
+def compute_class_weights(labels):
+    weights = compute_class_weight(class_weight='balanced', classes=np.unique(labels), y=labels)
+    return torch.tensor(weights, dtype=torch.float)
+
+
+def log_confusion_matrix(y_true, y_pred, title):
+    cm = confusion_matrix(y_true, y_pred)
+    fig, ax = plt.subplots()
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', ax=ax)
+    ax.set_title(title)
+    ax.set_xlabel("Predicted")
+    ax.set_ylabel("True")
+    plt.tight_layout()
+    plt.savefig(f"{title.replace(' ', '_').lower()}_confusion_matrix.png")
+    plt.close()
+
+
+def train_epoch(model, loader, optimizer, device, loss_fn_app, loss_fn_pal, scaler):
+    model.train()
+    total_loss = 0
+    for batch in tqdm(loader, desc="Training", leave=False):
+        input_ids = batch['input_ids'].to(device)
+        attention_mask = batch['attention_mask'].to(device)
+        appearance_label = batch['appearance_label'].to(device)
+        palate_label = batch['palate_label'].to(device)
+
+        optimizer.zero_grad()
+
+        with autocast(device_type='cuda'):
+            app_logits, pal_logits = model(input_ids, attention_mask)
+            loss1 = loss_fn_app(app_logits, appearance_label)
+            loss2 = loss_fn_pal(pal_logits, palate_label)
+            loss = 0.6 * loss1 + 0.4 * loss2
+
+        scaler.scale(loss).backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        scaler.step(optimizer)
+        scaler.update()
+
+        total_loss += loss.item()
+
+    return total_loss / len(loader)
+
+
+def compute_val_loss(model, loader, device, loss_fn_app, loss_fn_pal):
+    model.eval()
+    total_loss = 0
+    with torch.no_grad():
+        for batch in loader:
+            input_ids = batch['input_ids'].to(device)
+            attention_mask = batch['attention_mask'].to(device)
+            appearance_label = batch['appearance_label'].to(device)
+            palate_label = batch['palate_label'].to(device)
+
+            with autocast(device_type='cuda'):
+                app_logits, pal_logits = model(input_ids, attention_mask)
+                loss1 = loss_fn_app(app_logits.float(), appearance_label)
+                loss2 = loss_fn_pal(pal_logits.float(), palate_label)
+                loss = 0.6 * loss1 + 0.4 * loss2
+
+            total_loss += loss.item()
+    return total_loss / len(loader)
+
+
+def evaluate(model, loader, device, split="Validation"):
+    model.eval()
+    all_preds_app, all_labels_app = [], []
+    all_preds_pal, all_labels_pal = [], []
+
+    with torch.no_grad():
+        for batch in tqdm(loader, desc=f"{split} Eval", leave=False):
+            input_ids = batch['input_ids'].to(device)
+            attention_mask = batch['attention_mask'].to(device)
+            appearance_label = batch['appearance_label'].to(device)
+            palate_label = batch['palate_label'].to(device)
+
+            with autocast(device_type='cuda'):
+                app_logits, pal_logits = model(input_ids, attention_mask)
+
+            all_preds_app.extend(torch.argmax(app_logits, dim=1).cpu().numpy())
+            all_labels_app.extend(appearance_label.cpu().numpy())
+            all_preds_pal.extend(torch.argmax(pal_logits, dim=1).cpu().numpy())
+            all_labels_pal.extend(palate_label.cpu().numpy())
+
+    f1_app = f1_score(all_labels_app, all_preds_app, average='macro')
+    f1_pal = f1_score(all_labels_pal, all_preds_pal, average='macro')
+    avg_f1 = (f1_app + f1_pal) / 2
+
+    logger.info(f"{split} - Appearance F1: {f1_app:.4f}, Palate F1: {f1_pal:.4f}, Avg F1: {avg_f1:.4f}")
+    logger.info(f"{split} - Appearance preds: {Counter(all_preds_app)}")
+    logger.info(f"{split} - Palate preds: {Counter(all_preds_pal)}")
+    logger.info("Appearance Classification Report:\n" + classification_report(all_labels_app, all_preds_app))
+    logger.info("Palate Classification Report:\n" + classification_report(all_labels_pal, all_preds_pal))
+
+    # log_confusion_matrix(all_labels_app, all_preds_app, f"{split} Appearance")
+    # log_confusion_matrix(all_labels_pal, all_preds_pal, f"{split} Palate")
+
+    return avg_f1
+
+
+def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=5, batch_size=128):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    scaler = torch.amp.GradScaler('cuda')# Initialize once for mixed precision
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+    train_df, val_df, test_df = prepare_data(df)
+
+    logger.info(f"Train Appearance Label Distribution: {Counter(train_df['appearance_label'])}")
+    logger.info(f"Train Palate Label Distribution: {Counter(train_df['palate_label'])}")
+
+    train_loader = DataLoader(ABSA_Dataset(train_df, tokenizer), batch_size=batch_size, shuffle=True, num_workers=10,
+                              pin_memory=True)
+    val_loader = DataLoader(ABSA_Dataset(val_df, tokenizer), batch_size=batch_size, num_workers=10, pin_memory=True)
+    test_loader = DataLoader(ABSA_Dataset(test_df, tokenizer), batch_size=batch_size, num_workers=10, pin_memory=True)
+
+    model = MultiAspectSentimentModel(model_name).to(device)
+
+    app_weights = compute_class_weights(train_df['appearance_label'].tolist()).to(device)
+    pal_weights = compute_class_weights(train_df['palate_label'].tolist()).to(device)
+
+    loss_fn_app = nn.CrossEntropyLoss(weight=app_weights, label_smoothing=0.1)
+    loss_fn_pal = nn.CrossEntropyLoss(weight=pal_weights, label_smoothing=0.1)
+
+    optimizer = optim.AdamW(model.parameters(), lr=2e-5)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
+
+    best_f1 = 0.0
+    best_val_loss = float('inf')
+    patience, wait = 2, 0
+
+    for epoch in range(epochs):
+        logger.info(f"Epoch {epoch + 1}/{epochs}")
+        train_loss = train_epoch(model, train_loader, optimizer, device, loss_fn_app, loss_fn_pal, scaler)
+        logger.info(f"Training Loss: {train_loss:.4f}")
+
+        val_f1 = evaluate(model, val_loader, device, split="Validation")
+        val_loss = compute_val_loss(model, val_loader, device, loss_fn_app, loss_fn_pal)
+        scheduler.step()
+
+        if val_f1 > best_f1 or val_loss < best_val_loss:
+            best_f1 = val_f1
+            best_val_loss = val_loss
+            wait = 0
+            torch.save(model.state_dict(), "best_model.pt")
+            logger.info(f"New best model saved with F1: {best_f1:.4f}, Val Loss: {val_loss:.4f}")
+        else:
+            wait += 1
+            logger.info(f"No improvement. Patience: {wait}/{patience}")
+            if wait >= patience:
+                logger.info("Early stopping triggered.")
+                break
+
+    model.load_state_dict(torch.load("best_model.pt"))
+    evaluate(model, test_loader, device, split="Final Test")
+
+
+def start_training():
+    set_seed()
+    df = load_dataframe_from_database(is_target=True)
+    run_pipeline(df)
