@@ -2,9 +2,9 @@ import logging
 import multiprocessing
 import os
 from logging import Logger
-from math import floor
 
 import gensim.models
+import numpy as np
 import pandas as pd
 from gensim.models import FastText
 
@@ -16,14 +16,13 @@ from modules.utils.utilities import (
 LOGGER: Logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 MODELS_LOCATION: str = "./models"
-FULL_MODEL_NAME: str = "fast_text_for_absa_full.bin"
-SAMPLE_MODEL_NAME: str = "fast_text_for_absa_sample.bin"
+FULL_MODEL_NAME: str = "fast_text_for_absa.bin"
 NUMBER_OF_CORES: int = multiprocessing.cpu_count()
-SIMILARITY_THRESHOLD: float = 0.25
+SIMILARITY_THRESHOLD: float = 0.33
 
 
-def fast_text_model_trainer(is_sample: bool = False) -> None:
-    df: pd.DataFrame = load_dataframe_from_database(is_sample)
+def fast_text_model_trainer() -> None:
+    df: pd.DataFrame = load_dataframe_from_database()
     LOGGER.info("loading all 'processed_text'")
     data_words: list[list] = df["processed_text"].to_list()
     LOGGER.info("initialize model training")
@@ -35,32 +34,26 @@ def fast_text_model_trainer(is_sample: bool = False) -> None:
         workers=NUMBER_OF_CORES,
         sg=1,
     )
-    os.makedirs(f"{MODELS_LOCATION}/fast_text/sample", exist_ok=True)
-    os.makedirs(f"{MODELS_LOCATION}/fast_text/full", exist_ok=True)
-    if is_sample:
-        fasttext_model.save(f"{MODELS_LOCATION}/fast_text/sample/{SAMPLE_MODEL_NAME}")
-    else:
-        fasttext_model.save(f"{MODELS_LOCATION}/fast_text/full/{FULL_MODEL_NAME}")
+    os.makedirs(f"{MODELS_LOCATION}/fast_text", exist_ok=True)
+    fasttext_model.save(f"{MODELS_LOCATION}/fast_text/{FULL_MODEL_NAME}")
     LOGGER.info("model saved")
 
 
-def load_model(is_sample: bool = False) -> FastText | None:
+def load_model() -> FastText | None:
     try:
-        if is_sample:
-            LOGGER.info("loading sample FastText model")
-            return gensim.models.FastText.load(f"{MODELS_LOCATION}/fast_text/sample/{SAMPLE_MODEL_NAME}")
-        else:
-            LOGGER.info("loading full FastText model")
-            return gensim.models.FastText.load(f"{MODELS_LOCATION}/fast_text/full/{FULL_MODEL_NAME}")
+        LOGGER.info("loading FastText model")
+        return gensim.models.FastText.load(
+            f"{MODELS_LOCATION}/fast_text/{FULL_MODEL_NAME}"
+        )
     except FileNotFoundError:
-        LOGGER.error("model was not found or trainer")
+        LOGGER.error("model was not found or trained")
         return None
 
 
-def generate_similarity_scores_and_labels(is_sample: bool = False) -> None:
-    df: pd.DataFrame = load_dataframe_from_database(is_sample)
+def generate_similarity_scores_and_labels() -> None:
+    df: pd.DataFrame = load_dataframe_from_database()
 
-    model: FastText | None = load_model(is_sample)
+    model: FastText | None = load_model()
     if model is None:
         return
 
@@ -70,14 +63,65 @@ def generate_similarity_scores_and_labels(is_sample: bool = False) -> None:
         df[f"{aspect}_similarity"] = df["processed_text"].apply(
             lambda x: get_similarity(x, aspect, model)
         )
-        LOGGER.info(f"checking where '{aspect}' is mentioned using threshold: {SIMILARITY_THRESHOLD}")
-        df[f"{aspect}_mentioned"] = df.apply(lambda row: is_aspect_mentioned(row, aspect), axis=1)
+        LOGGER.info(
+            f"checking where '{aspect}' is mentioned using threshold: {SIMILARITY_THRESHOLD}"
+        )
+        df[f"{aspect}_mentioned"] = df.apply(
+            lambda row: is_aspect_mentioned(row, aspect), axis=1
+        )
 
         LOGGER.info(f"assigning sentiment label to aspect: {aspect}")
         df[f"{aspect}_sentiment"] = df.apply(
-            lambda row: rating_to_sentiment(row[f"{aspect}"]) if row[f"{aspect}_mentioned"] else -2, axis=1)
+            lambda row: rating_to_sentiment(row[f"{aspect}"])
+            if row[f"{aspect}_mentioned"]
+            else np.NaN,
+            axis=1,
+        )
 
-    dump_dataframe_to_sqlite(df, is_sample)
+    dump_dataframe_to_sqlite(df)
+
+
+def find_most_common_aspect_combination() -> None:
+    df: pd.DataFrame = load_dataframe_from_database()
+    aspects_mentioned = [
+        "appearance_mentioned",
+        "aroma_mentioned",
+        "palate_mentioned",
+        "taste_mentioned",
+    ]
+
+    df["aspect_combo"] = df[aspects_mentioned].apply(tuple, axis=1)
+
+    aspect_counts = df["aspect_combo"].value_counts()
+    most_common_combo = aspect_counts.idxmax()
+
+    df_filtered = df[df["aspect_combo"] == most_common_combo]
+
+    aspect_names = [
+        aspect.split("_")[0]
+        for aspect, mentioned in zip(aspects_mentioned, most_common_combo)
+        if mentioned
+    ]
+
+    LOGGER.info(
+        f"Most common aspect combination: {aspect_names} - {len(df_filtered)} rows"
+    )
+
+    base_columns = ["beer_id", "name", "text", "processed_text"]
+    aspect_cols = []
+    for aspect in aspect_names:
+        aspect_cols.extend(
+            [
+                aspect,
+                f"{aspect}_similarity",
+                f"{aspect}_mentioned",
+                f"{aspect}_sentiment",
+            ]
+        )
+    keep_columns = base_columns + aspect_cols
+    df_final = df_filtered[keep_columns].copy()
+
+    dump_dataframe_to_sqlite(df_final, is_target=True)
 
 
 def get_similarity(text: list[str], aspect: str, model: FastText):
@@ -91,10 +135,10 @@ def is_aspect_mentioned(row: pd.Series, aspect: str) -> bool:
 def rating_to_sentiment(rating: float) -> int:
     if rating >= 4.0:
         return 1
-    elif rating <= 2.0:
-        return -1
-    else:
+    elif rating >= 2.5:
         return 0
+    else:
+        return -1
 
 
 # Unused
