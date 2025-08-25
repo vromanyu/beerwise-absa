@@ -10,11 +10,11 @@ import pandas as pd
 PRE_PROCESSED_PREFIX: str = "dataset_portion_pre_processed"
 DATASET_LOCATION: str = "dataset/"
 DATABASE_URL: str = "sqlite:///dataset.db"
-SAMPLE_DATABASE_URL: str = "sqlite:///sample_dataset.db"
+TARGET_DATABASE_URL: str = "sqlite:///target_dataset.db"
 DATASET_TABLE_NAME: str = "BEER_ADVOCATE"
-SAMPLE_DATASET_TABLE_NAME: str = "SAMPLE_BEER_ADVOCATE"
+TARGET_DATASET_TABLE_NAME: str = "TARGET_BEER_ADVOCATE"
 DATABASE_LOCATION: str = "dataset.db"
-SAMPLE_DATABASE_LOCATION: str = "sample_dataset.db"
+TARGET_DATABASE_LOCATION: str = "target_dataset.db"
 LOGGER: Logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
@@ -33,31 +33,29 @@ def load_pre_processed_dataset() -> pd.DataFrame:
     return aggregated_df
 
 
-def create_database_engine(is_sample: bool = False) -> Engine:
-    if is_sample:
-        return create_engine(SAMPLE_DATABASE_URL, echo=True)
+def create_database_engine(is_target: bool = False) -> Engine:
+    if is_target:
+        return create_engine(TARGET_DATABASE_URL, echo=True)
     else:
         return create_engine(DATABASE_URL, echo=True)
 
 
-def dump_dataframe_to_sqlite(df: pd.DataFrame, is_sample: bool = False) -> None:
+def dump_dataframe_to_sqlite(df: pd.DataFrame, is_target: bool = False) -> None:
     df["processed_text"] = df["processed_text"].apply(str)
-    if is_sample:
-        LOGGER.info("loaded sample dataset")
-        engine: Engine = create_database_engine(is_sample=True)
-        df.to_sql(name=SAMPLE_DATASET_TABLE_NAME, con=engine, if_exists="replace", index=False)
-        LOGGER.info(f"dataset was dump to sqlite({SAMPLE_DATABASE_LOCATION}/{SAMPLE_DATASET_TABLE_NAME})")
+    if is_target:
+        engine: Engine = create_database_engine(is_target=True)
+        df.to_sql(name=TARGET_DATASET_TABLE_NAME, con=engine, if_exists="replace", index=False)
+        LOGGER.info(f"dataset was dump to sqlite({TARGET_DATABASE_LOCATION}/{TARGET_DATASET_TABLE_NAME})")
     else:
-        LOGGER.info("loaded whole dataset")
-        engine = create_database_engine(is_sample=False)
+        engine = create_database_engine(is_target=False)
         df.to_sql(name=DATASET_TABLE_NAME, con=engine, if_exists="replace", index=False)
         LOGGER.info(f"dataset was dump to sqlite({DATABASE_LOCATION}/{DATASET_TABLE_NAME})")
 
 
-def load_dataframe_from_database(is_sample: bool = False) -> pd.DataFrame:
-    if is_sample:
-        LOGGER.info(f"loading sample dataset from {SAMPLE_DATABASE_LOCATION}")
-        df: pd.DataFrame = pd.read_sql_table(SAMPLE_DATASET_TABLE_NAME, SAMPLE_DATABASE_URL)
+def load_dataframe_from_database(is_target: bool = False) -> pd.DataFrame:
+    if is_target:
+        LOGGER.info(f"loading target dataset from {TARGET_DATABASE_LOCATION}")
+        df: pd.DataFrame = pd.read_sql_table(TARGET_DATASET_TABLE_NAME, TARGET_DATABASE_URL)
         df["processed_text"] = df["processed_text"].apply(ast.literal_eval)
         return df
     else:
@@ -65,8 +63,3 @@ def load_dataframe_from_database(is_sample: bool = False) -> pd.DataFrame:
         df: pd.DataFrame = pd.read_sql_table(DATASET_TABLE_NAME, DATABASE_URL)
         df["processed_text"] = df["processed_text"].apply(ast.literal_eval)
         return df
-
-
-def create_sample_dataset(sample_length: int) -> None:
-    df: pd.DataFrame = load_dataframe_from_database()
-    dump_dataframe_to_sqlite(df[:sample_length], is_sample=True)
