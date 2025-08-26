@@ -108,3 +108,17 @@ def predict_sentiments_using_logistic_regression(input: str):
     appearance_sentiment = sentiment_map[preds[0][0]]
     palate_sentiment = sentiment_map[preds[0][1]]
     print(f"Appearance: {appearance_sentiment}, Palate: {palate_sentiment}")
+
+
+def predict_sentiments_using_linear_svc(input: str):
+    vectorizer = joblib.load("./models/linear_svc/linear_svc_vectorizer.pkl")
+    model = joblib.load("./models/linear_svc/multioutput_linear_svc_model.pkl")
+
+    pre_processed_input = handle_pre_processing(input, lemmatize=False)
+    X = vectorizer.transform([" ".join(pre_processed_input)])
+    preds = model.predict(X)
+
+    sentiment_map = {0: "negative", 1: "neutral", 2: "positive"}
+    appearance_sentiment = sentiment_map[preds[0][0]]
+    palate_sentiment = sentiment_map[preds[0][1]]
+    print(f"Appearance: {appearance_sentiment}, Palate: {palate_sentiment}")
