@@ -1,7 +1,6 @@
 import logging
 import multiprocessing
 import os
-from logging import Logger
 
 import gensim.models
 import numpy as np
@@ -51,12 +50,13 @@ def load_model() -> FastText | None:
         return None
 
 
-def generate_similarity_scores_and_labels() -> None:
+def generate_similarity_scores_labels_and_filter() -> None:
     df = load_dataframe_from_database()
 
-    model: FastText | None = load_model()
+    model = load_model()
     if model is None:
-        return
+        fast_text_model_trainer()
+        model = load_model()
 
     aspects = ["appearance", "aroma", "palate", "taste"]
     for aspect in aspects:
@@ -79,10 +79,27 @@ def generate_similarity_scores_and_labels() -> None:
             axis=1,
         )
 
-    dump_dataframe_to_sqlite(df)
+    find_most_common_aspect_combination(df)
 
 
-def find_most_common_aspect_combination() -> None:
+def get_similarity(text: list[str], aspect: str, model: FastText):
+    return model.wv.n_similarity(text, aspect)
+
+
+def is_aspect_mentioned(row: pd.Series, aspect: str) -> bool:
+    return row[f"{aspect}_similarity"] >= SIMILARITY_THRESHOLD
+
+
+def rating_to_sentiment(rating: float) -> int:
+    if rating >= 4.0:
+        return 1
+    elif rating >= 2.5:
+        return 0
+    else:
+        return -1
+
+
+def find_most_common_aspect_combination(df: pd.DataFrame) -> None:
     df = load_dataframe_from_database()
     aspects_mentioned = [
         "appearance_mentioned",
@@ -124,20 +141,3 @@ def find_most_common_aspect_combination() -> None:
 
     dump_dataframe_to_sqlite(df_final, is_target=True)
     save_most_common_aspects()
-
-
-def get_similarity(text: list[str], aspect: str, model: FastText):
-    return model.wv.n_similarity(text, aspect)
-
-
-def is_aspect_mentioned(row: pd.Series, aspect: str) -> bool:
-    return row[f"{aspect}_similarity"] >= SIMILARITY_THRESHOLD
-
-
-def rating_to_sentiment(rating: float) -> int:
-    if rating >= 4.0:
-        return 1
-    elif rating >= 2.5:
-        return 0
-    else:
-        return -1
