@@ -2,7 +2,13 @@
 
 This project is my thesis on Aspect-Based Sentiment Analysis (ABSA), focusing on beer reviews. Each review in our dataset includes scores for four aspects: **appearance**, **aroma**, **palate**, and **taste**.
 
+
 ## Data Preparation
+- **Dataset Storage:** The original BeerAdvocate dataset and the single filtered/processed dataset are stored under the `dataset` folder. Due to their size, these files are tracked using **git LFS** (Large File Storage). To download these files after cloning the repository, run:
+
+	```bash
+	git lfs pull
+	```
 - **Preprocessing:** All reviews were preprocessed (tokenization, cleaning, etc.) to ensure high-quality input for modeling.
 - **Aspect Identification:** Using the FastText model, we identified which aspects were mentioned in each review. Since each review had scores for appearance, aroma, palate, and taste, we assumed these were the aspects discussed.
 - **Aspect Pair Selection:** We found that the most frequently mentioned aspect pair was **(appearance, palate)**. We filtered the dataset to include only reviews where both aspects were clearly mentioned.
