@@ -358,7 +358,9 @@ def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=5, batch_size=32):
     optimizer = optim.AdamW(
         get_optimizer_grouped_parameters(model, base_lr=2e-5), eps=1e-8
     )
-    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=epochs)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="min", factor=0.5, patience=1, verbose=True, min_lr=1e-7
+    )
 
     best_f1 = 0.0
     best_val_loss = float("inf")
@@ -373,7 +375,7 @@ def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=5, batch_size=32):
 
         val_f1 = evaluate(model, val_loader, device, split="Validation")
         val_loss = compute_val_loss(model, val_loader, device, loss_fn_app, loss_fn_pal)
-        scheduler.step()
+        scheduler.step(val_loss)
 
         if val_f1 > best_f1 or val_loss < best_val_loss:
             best_f1 = val_f1
