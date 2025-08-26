@@ -19,9 +19,9 @@ from transformers import AutoModel, AutoTokenizer
 
 from modules.utils.utilities import load_dataframe_from_database
 
-MODELS_LOCATION: str = "./models/transformer"
+MODELS_LOCATION = "./models/transformer"
 
-LOGGER: logging.Logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
