@@ -11,6 +11,7 @@ from gensim.models import FastText
 from modules.utils.utilities import (
     dump_dataframe_to_sqlite,
     load_dataframe_from_database,
+    save_most_common_aspects,
 )
 
 LOGGER: Logger = logging.getLogger(__name__)
@@ -122,6 +123,7 @@ def find_most_common_aspect_combination() -> None:
     df_final = df_filtered[keep_columns].copy()
 
     dump_dataframe_to_sqlite(df_final, is_target=True)
+    save_most_common_aspects()
 
 
 def get_similarity(text: list[str], aspect: str, model: FastText):
@@ -139,15 +141,3 @@ def rating_to_sentiment(rating: float) -> int:
         return 0
     else:
         return -1
-
-
-# Unused
-# def generate_and_print_topics():
-#     df: pd.DataFrame = load_pre_processed_dataset(DATASET)
-#     data_words: list[list] = df["processed_text"].to_list()
-#     id2word: Dictionary = corpora.Dictionary(data_words)
-#     corpus: list[list[tuple[int, int]]] = [id2word.doc2bow(text) for text in data_words]
-#     lda_model = LdaMulticore(
-#         corpus=corpus, id2word=id2word, num_topics=10, iterations=400
-#     )
-#     pprint.pprint(lda_model.print_topics())
