@@ -1,4 +1,5 @@
 import logging
+import os
 import random
 from collections import Counter
 
@@ -17,6 +18,8 @@ from tqdm import tqdm
 from transformers import AutoModel, AutoTokenizer
 
 from modules.utils.utilities import load_dataframe_from_database
+
+MODELS_LOCATION: str = "./models/transformer"
 
 logging.basicConfig(
     level=logging.INFO,
@@ -347,6 +350,8 @@ def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=5, batch_size=32):
     best_val_loss = float("inf")
     patience, wait = 2, 0
 
+    os.makedirs(os.path.dirname(MODELS_LOCATION), exist_ok=True)
+
     for epoch in range(epochs):
         logger.info(f"Epoch {epoch + 1}/{epochs}")
         train_loss = train_epoch(
@@ -362,7 +367,10 @@ def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=5, batch_size=32):
             best_f1 = val_f1
             best_val_loss = val_loss
             wait = 0
-            torch.save(model.state_dict(), "best_model.pt")
+            torch.save(
+                model.state_dict(),
+                f"{MODELS_LOCATION}/{model_name.replace('/', '_')}.pt",
+            )
             logger.info(
                 f"New best model saved with F1: {best_f1:.4f}, Val Loss: {val_loss:.4f}"
             )
@@ -373,11 +381,14 @@ def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=5, batch_size=32):
                 logger.info("Early stopping triggered.")
                 break
 
-    model.load_state_dict(torch.load("best_model.pt"))
+    model.load_state_dict(
+        torch.load(f"{MODELS_LOCATION}/{model_name.replace('/', '_')}.pt")
+    )
     evaluate(model, test_loader, device, split="Final Test")
 
 
 def start_training():
+    model = "prajjwal1/bert-mini"
     set_seed()
     df = load_dataframe_from_database(is_target=True)
-    run_pipeline(df)
+    run_pipeline(df, model_name=model)
