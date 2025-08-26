@@ -1,3 +1,6 @@
+import joblib
+
+
 import ast
 
 from sqlalchemy import Engine, create_engine
@@ -6,6 +9,8 @@ import logging
 import os
 
 import pandas as pd
+
+from modules.processing.preprocessing import handle_pre_processing
 
 PRE_PROCESSED_PREFIX = "dataset_portion_pre_processed"
 DATASET_LOCATION = "dataset/"
@@ -88,3 +93,21 @@ def read_most_common_aspects() -> list[str]:
     with open(ASPECTS_FILE_LOCATION, "r", encoding="utf-8") as f:
         aspects = [line.strip() for line in f]
     return aspects
+
+
+def predict_sentiments_using_logistic_regression(input: str):
+    vectorizer = joblib.load(
+        "./models/logistic_regression/logistic_regression_vectorizer.pkl"
+    )
+    model = joblib.load(
+        "./models/logistic_regression/multioutput_logistic_regression_model.pkl"
+    )
+
+    pre_processed_input = handle_pre_processing(input, lemmatize=False)
+    X = vectorizer.transform([" ".join(pre_processed_input)])
+    preds = model.predict(X)
+
+    sentiment_map = {0: "negative", 1: "neutral", 2: "positive"}
+    appearance_sentiment = sentiment_map[preds[0][0]]
+    palate_sentiment = sentiment_map[preds[0][1]]
+    print(f"Appearance: {appearance_sentiment}, Palate: {palate_sentiment}")
