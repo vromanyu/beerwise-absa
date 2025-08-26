@@ -8,9 +8,9 @@ from nltk import WordNetLemmatizer
 from nltk.corpus import stopwords
 from spellchecker import SpellChecker
 
-DATASET: str = "../../dataset/dataset_as_excel_mandatory_rows.xlsx"
+DATASET = "../../dataset/dataset_as_excel_mandatory_rows.xlsx"
 
-STOPWORDS: set = set(stopwords.words("english"))
+STOPWORDS = set(stopwords.words("english"))
 CLEANUP_REGEX = re.compile(r"http\S+|\d+|[^a-z\s]", flags=re.UNICODE)
 WHITESPACE_REGEX = re.compile(r"\s+", flags=re.UNICODE)
 
@@ -51,9 +51,7 @@ def handle_pre_processing(text: str, lemmatize: bool = False) -> list[str]:
     text = WHITESPACE_REGEX.sub(" ", text).strip()
     tokens = nltk.word_tokenize(text)
     processed_tokens: list[str] = [
-        str(token)
-        for token in tokens
-        if token not in STOPWORDS
+        str(token) for token in tokens if token not in STOPWORDS
     ]
     if lemmatize:
         wordnet_lemmatizer = WordNetLemmatizer()
