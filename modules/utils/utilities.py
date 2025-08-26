@@ -4,7 +4,6 @@ import joblib
 import ast
 
 from sqlalchemy import Engine, create_engine
-from logging import Logger
 import logging
 import os
 
@@ -21,17 +20,17 @@ TARGET_DATASET_TABLE_NAME = "TARGET_BEER_ADVOCATE"
 DATABASE_LOCATION = "dataset.db"
 TARGET_DATABASE_LOCATION = "target_dataset.db"
 ASPECTS_FILE_LOCATION = "most_common_aspects.txt"
-LOGGER: Logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 
-def load_pre_processed_dataset() -> pd.DataFrame:
-    aggregated_df: pd.DataFrame = pd.DataFrame()
-    datasets: list[str] = os.listdir(DATASET_LOCATION)
+def load_preprocessed_dataset() -> pd.DataFrame:
+    aggregated_df = pd.DataFrame()
+    datasets = os.listdir(DATASET_LOCATION)
     for dataset in datasets:
         if dataset.startswith(PRE_PROCESSED_PREFIX):
             LOGGER.info(f"loading dataset: {dataset}")
-            df: pd.DataFrame = pd.read_excel(f"dataset/{dataset}")
+            df = pd.read_excel(f"dataset/{dataset}")
             aggregated_df = pd.concat([aggregated_df, df])
 
     aggregated_df["processed_text"] = aggregated_df["processed_text"].apply(
@@ -53,7 +52,7 @@ def create_database_engine(is_target: bool = False) -> Engine:
 def dump_dataframe_to_sqlite(df: pd.DataFrame, is_target: bool = False) -> None:
     df["processed_text"] = df["processed_text"].apply(str)
     if is_target:
-        engine: Engine = create_database_engine(is_target=True)
+        engine = create_database_engine(is_target=True)
         df.to_sql(
             name=TARGET_DATASET_TABLE_NAME, con=engine, if_exists="replace", index=False
         )
@@ -71,14 +70,12 @@ def dump_dataframe_to_sqlite(df: pd.DataFrame, is_target: bool = False) -> None:
 def load_dataframe_from_database(is_target: bool = False) -> pd.DataFrame:
     if is_target:
         LOGGER.info(f"loading target dataset from {TARGET_DATABASE_LOCATION}")
-        df: pd.DataFrame = pd.read_sql_table(
-            TARGET_DATASET_TABLE_NAME, TARGET_DATABASE_URL
-        )
+        df = pd.read_sql_table(TARGET_DATASET_TABLE_NAME, TARGET_DATABASE_URL)
         df["processed_text"] = df["processed_text"].apply(ast.literal_eval)
         return df
     else:
         LOGGER.info(f"loading dataset from {DATABASE_LOCATION}")
-        df: pd.DataFrame = pd.read_sql_table(DATASET_TABLE_NAME, DATABASE_URL)
+        df = pd.read_sql_table(DATASET_TABLE_NAME, DATABASE_URL)
         df["processed_text"] = df["processed_text"].apply(ast.literal_eval)
         return df
 
