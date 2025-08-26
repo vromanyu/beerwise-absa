@@ -65,7 +65,6 @@ def prepare_data(df):
 
     df = df.dropna(subset=["appearance_label", "palate_label"])
 
-    # Upsample based on joint label
     df["joint_label"] = (
         df["appearance_label"].astype(str) + "_" + df["palate_label"].astype(str)
     )
@@ -153,7 +152,6 @@ class FocalLoss(nn.Module):
     def forward(self, logits, targets):
         num_classes = logits.size(1)
         if self.label_smoothing > 0:
-            # Create smoothed labels
             with torch.no_grad():
                 true_dist = torch.zeros_like(logits)
                 true_dist.fill_(self.label_smoothing / (num_classes - 1))
@@ -175,18 +173,6 @@ def compute_class_weights(labels):
         class_weight="balanced", classes=np.unique(labels), y=labels
     )
     return torch.tensor(weights, dtype=torch.float)
-
-
-# def log_confusion_matrix(y_true, y_pred, title):
-#     cm = confusion_matrix(y_true, y_pred)
-#     fig, ax = plt.subplots()
-#     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", ax=ax)
-#     ax.set_title(title)
-#     ax.set_xlabel("Predicted")
-#     ax.set_ylabel("True")
-#     plt.tight_layout()
-#     plt.savefig(f"{title.replace(' ', '_').lower()}_confusion_matrix.png")
-#     plt.close()
 
 
 def train_epoch(model, loader, optimizer, device, loss_fn_app, loss_fn_pal, scaler):
@@ -274,9 +260,6 @@ def evaluate(model, loader, device, split="Validation"):
         + classification_report(all_labels_pal, all_preds_pal)
     )
 
-    # log_confusion_matrix(all_labels_app, all_preds_app, f"{split} Appearance")
-    # log_confusion_matrix(all_labels_pal, all_preds_pal, f"{split} Palate")
-
     return avg_f1
 
 
@@ -284,7 +267,6 @@ def get_optimizer_grouped_parameters(model, base_lr=2e-5, lr_decay=0.95):
     no_decay = ["bias", "LayerNorm.weight"]
     optimizer_grouped_parameters = []
 
-    # Collect layers from embeddings and encoder
     layers = [model.bert.embeddings] + list(model.bert.encoder.layer)
     num_layers = len(layers)
 
@@ -304,7 +286,6 @@ def get_optimizer_grouped_parameters(model, base_lr=2e-5, lr_decay=0.95):
             },
         ]
 
-    # Heads (appearance and palate)
     optimizer_grouped_parameters += [
         {"params": model.appearance_head.parameters(), "lr": base_lr},
         {"params": model.palate_head.parameters(), "lr": base_lr},
