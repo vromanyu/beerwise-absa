@@ -21,12 +21,8 @@ from modules.utils.utilities import load_dataframe_from_database
 
 MODELS_LOCATION: str = "./models/transformer"
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s",
-    handlers=[logging.FileHandler("absa_training.log"), logging.StreamHandler()],
-)
-logger = logging.getLogger()
+LOGGER: logging.Logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 
 def set_seed(seed=42):
@@ -249,16 +245,16 @@ def evaluate(model, loader, device, split="Validation"):
     f1_pal = f1_score(all_labels_pal, all_preds_pal, average="macro")
     avg_f1 = (f1_app + f1_pal) / 2
 
-    logger.info(
+    LOGGER.info(
         f"{split} - Appearance F1: {f1_app:.4f}, Palate F1: {f1_pal:.4f}, Avg F1: {avg_f1:.4f}"
     )
-    logger.info(f"{split} - Appearance preds: {Counter(all_preds_app)}")
-    logger.info(f"{split} - Palate preds: {Counter(all_preds_pal)}")
-    logger.info(
+    LOGGER.info(f"{split} - Appearance preds: {Counter(all_preds_app)}")
+    LOGGER.info(f"{split} - Palate preds: {Counter(all_preds_pal)}")
+    LOGGER.info(
         "Appearance Classification Report:\n"
         + classification_report(all_labels_app, all_preds_app)
     )
-    logger.info(
+    LOGGER.info(
         "Palate Classification Report:\n"
         + classification_report(all_labels_pal, all_preds_pal)
     )
@@ -304,10 +300,10 @@ def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=5, batch_size=32):
 
     train_df, val_df, test_df = prepare_data(df)
 
-    logger.info(
+    LOGGER.info(
         f"Train Appearance Label Distribution: {Counter(train_df['appearance_label'])}"
     )
-    logger.info(f"Train Palate Label Distribution: {Counter(train_df['palate_label'])}")
+    LOGGER.info(f"Train Palate Label Distribution: {Counter(train_df['palate_label'])}")
 
     train_loader = DataLoader(
         ABSA_Dataset(train_df, tokenizer),
@@ -353,11 +349,11 @@ def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=5, batch_size=32):
     os.makedirs(os.path.dirname(MODELS_LOCATION), exist_ok=True)
 
     for epoch in range(epochs):
-        logger.info(f"Epoch {epoch + 1}/{epochs}")
+        LOGGER.info(f"Epoch {epoch + 1}/{epochs}")
         train_loss = train_epoch(
             model, train_loader, optimizer, device, loss_fn_app, loss_fn_pal, scaler
         )
-        logger.info(f"Training Loss: {train_loss:.4f}")
+        LOGGER.info(f"Training Loss: {train_loss:.4f}")
 
         val_f1 = evaluate(model, val_loader, device, split="Validation")
         val_loss = compute_val_loss(model, val_loader, device, loss_fn_app, loss_fn_pal)
@@ -371,14 +367,14 @@ def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=5, batch_size=32):
                 model.state_dict(),
                 f"{MODELS_LOCATION}/{model_name.replace('/', '_')}.pt",
             )
-            logger.info(
+            LOGGER.info(
                 f"New best model saved with F1: {best_f1:.4f}, Val Loss: {val_loss:.4f}"
             )
         else:
             wait += 1
-            logger.info(f"No improvement. Patience: {wait}/{patience}")
+            LOGGER.info(f"No improvement. Patience: {wait}/{patience}")
             if wait >= patience:
-                logger.info("Early stopping triggered.")
+                LOGGER.info("Early stopping triggered.")
                 break
 
     model.load_state_dict(
