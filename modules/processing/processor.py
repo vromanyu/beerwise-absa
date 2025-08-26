@@ -4,8 +4,6 @@ import json
 import logging
 import multiprocessing
 import os
-from concurrent.futures import ThreadPoolExecutor
-from logging import Logger
 from typing import Optional
 
 import pandas as pd
@@ -14,22 +12,23 @@ from filesplit.split import Split
 from modules.processing.preprocessing import (
     handle_pre_processing,
 )
+from modules.utils.utilities import dump_dataframe_to_sqlite, load_preprocessed_dataset
 
-DATASET: str = "dataset/beeradvocate.json"
-PARSED_DATASET: str = "dataset/parsed_dataset.json"
-OUTPUT_FILE_PREFIX: str = "dataset/dataset_portion_pre_processed_"
-CHUNKS: str = "dataset/chunks"
-LINES_PER_CHUNK: int = 500_000
+DATASET = "dataset/beeradvocate.json"
+PARSED_DATASET = "dataset/parsed_dataset.json"
+OUTPUT_FILE_PREFIX = "dataset/dataset_portion_pre_processed_"
+CHUNKS = "dataset/chunks"
+LINES_PER_CHUNK = 500_000
 
-LOG_FILE: str = "creator.log"
-LOGGER: Logger = logging.getLogger(__name__)
+LOG_FILE = "creator.log"
+LOGGER = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
-NUMBER_OF_CORES: int = multiprocessing.cpu_count()
+NUMBER_OF_CORES = multiprocessing.cpu_count()
 
 
 def parse_json_dataset(file: str) -> None:
-    counter: int = 0
+    counter = 0
     try:
         with open(file) as json_file:
             for line in json_file:
@@ -40,38 +39,38 @@ def parse_json_dataset(file: str) -> None:
                         f"parsed JSON at line: {counter} -- file: {json_file.name}  was empty"
                     )
                     continue
-                with open(
-                        PARSED_DATASET, "a", encoding="utf-8"
-                ) as parsed_dataset_json:
+                with open(PARSED_DATASET, "a", encoding="utf-8") as parsed_dataset_json:
                     json.dump(dataset_json, parsed_dataset_json)
                     parsed_dataset_json.write("\n")
     except FileNotFoundError as e:
         print(e)
 
 
-def create_processed_excel_files(limit: int = 0) -> None:
-    pool: ThreadPoolExecutor = concurrent.futures.ThreadPoolExecutor(
-        max_workers=NUMBER_OF_CORES
-    )
+def create_preprocessed_excel_files_and_save_to_db() -> None:
+    create_preprocessed_excel_files()
+    df = load_preprocessed_dataset()
+    dump_dataframe_to_sqlite(df)
+
+
+def create_preprocessed_excel_files() -> None:
+    pool = concurrent.futures.ThreadPoolExecutor(max_workers=NUMBER_OF_CORES)
     split_dataset_to_chunks()
-    chunk_files: list = os.listdir(CHUNKS)
-    chunk_number: int = 1
+    chunk_files = os.listdir(CHUNKS)
+    chunk_number = 1
     for chunk_file in chunk_files:
-        pool.submit(process_chunk, chunk_file, chunk_number, limit)
+        pool.submit(process_chunk, chunk_file, chunk_number)
         chunk_number += 1
     pool.shutdown(wait=True)
     remove_chunks()
     LOGGER.info("finished parallel processing of all chunks")
 
 
-def process_chunk(chunk_file: str, chunk_number: int, limit: int = 0) -> None:
-    result: pd.DataFrame = pd.DataFrame()
+def process_chunk(chunk_file: str, chunk_number: int) -> None:
+    result = pd.DataFrame()
     with open(f"{CHUNKS}/{chunk_file}") as dataset:
-        counter: int = 0
+        counter = 0
         for line in dataset:
             counter += 1
-            if limit == counter:
-                break
             processed_line: Optional[pd.DataFrame] = process_line(line, counter)
             if processed_line is not None:
                 result = pd.concat([result, processed_line], ignore_index=True)
@@ -86,12 +85,12 @@ def process_chunk(chunk_file: str, chunk_number: int, limit: int = 0) -> None:
 
 
 def process_line(data: str, line: int) -> Optional[pd.DataFrame]:
-    dataset_json = ast.literal_eval(data)
+    dataset_json: dict = ast.literal_eval(data)
     if not dataset_json:
         LOGGER.warning(f"line {line}: can't be processed")
         return None
     try:
-        result: pd.DataFrame = pd.DataFrame()
+        result = pd.DataFrame()
         data_json_transform = extract_keys_from_dataset(dataset_json)
         json_df = pd.DataFrame([data_json_transform])
         json_df["processed_text"] = json_df["text"].apply(handle_pre_processing)
@@ -104,8 +103,8 @@ def process_line(data: str, line: int) -> Optional[pd.DataFrame]:
         return None
 
 
-def extract_keys_from_dataset(dataset: dict) -> dict:
-    res: dict = {
+def extract_keys_from_dataset(dataset: dict):
+    res = {
         "beer_id": str(dataset["beer/beerId"]),
         "name": str(dataset["beer/name"]),
         "appearance": float(dataset["review/appearance"]),
