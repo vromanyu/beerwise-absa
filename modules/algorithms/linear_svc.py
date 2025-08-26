@@ -52,6 +52,8 @@ def prepare_data(df):
     df = upsample_to_match(df, "joint_label")
 
     strat_split = StratifiedShuffleSplit(n_splits=1, test_size=0.15, random_state=42)
+    train_df = None
+    test_df = None
     for train_idx, test_idx in strat_split.split(df, df["joint_label"]):
         train_df = df.iloc[train_idx].copy()
         test_df = df.iloc[test_idx].copy()

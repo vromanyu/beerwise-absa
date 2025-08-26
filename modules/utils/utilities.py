@@ -92,7 +92,7 @@ def read_most_common_aspects() -> list[str]:
     return aspects
 
 
-def predict_sentiments_using_logistic_regression(input: str):
+def predict_sentiments_using_logistic_regression(user_input: str):
     vectorizer = joblib.load(
         "./models/logistic_regression/logistic_regression_vectorizer.pkl"
     )
@@ -100,7 +100,7 @@ def predict_sentiments_using_logistic_regression(input: str):
         "./models/logistic_regression/multioutput_logistic_regression_model.pkl"
     )
 
-    pre_processed_input = handle_pre_processing(input, lemmatize=False)
+    pre_processed_input = handle_pre_processing(user_input, lemmatize=False)
     X = vectorizer.transform([" ".join(pre_processed_input)])
     preds = model.predict(X)
 
@@ -110,11 +110,11 @@ def predict_sentiments_using_logistic_regression(input: str):
     print(f"Appearance: {appearance_sentiment}, Palate: {palate_sentiment}")
 
 
-def predict_sentiments_using_linear_svc(input: str):
+def predict_sentiments_using_linear_svc(user_input: str):
     vectorizer = joblib.load("./models/linear_svc/linear_svc_vectorizer.pkl")
     model = joblib.load("./models/linear_svc/multioutput_linear_svc_model.pkl")
 
-    pre_processed_input = handle_pre_processing(input, lemmatize=False)
+    pre_processed_input = handle_pre_processing(user_input, lemmatize=False)
     X = vectorizer.transform([" ".join(pre_processed_input)])
     preds = model.predict(X)
 
