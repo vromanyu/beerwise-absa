@@ -1,72 +1,49 @@
 import sys
 
-from pandas import DataFrame
 
+from modules.models.linear_svc import linear_svc_trainer
 from modules.models.logistic_regression import logistic_regression_trainer
 from modules.models.transformer_based import transformer_based_trainer
 from modules.processing.processor import (
+    create_preprocessed_excel_files_and_save_to_db,
     parse_json_dataset,
     DATASET,
-    create_processed_excel_files,
 )
 from modules.models.fast_text_training import (
-    fast_text_model_trainer,
-    generate_similarity_scores_and_labels,
-    find_most_common_aspect_combination,
+    generate_similarity_scores_labels_and_filter,
 )
 from modules.utils.utilities import (
-    dump_dataframe_to_sqlite,
-    load_dataframe_from_database,
-    load_pre_processed_dataset,
+    predict_sentiments_using_logistic_regression,
 )
 
 
 def menu():
     print(
         ""
-        + "1    - parse_json_dataset\n"
-        + "2    - create_processed_excel_files\n"
-        + "3    - load preprocessed dataset\n"
-        + "4    - dump whole dataset to database\n"
-        + "5    - load dataframe from database\n"
-        + "6    - train FastText model\n"
-        + "7    - generate similarity scores and add sentiment labels\n"
-        + "8    - create target dataset by identifying mostly frequently mentioned aspects\n"
-        + "9    - train Logistic Regression model\n"
-        + "10   - train transformer-based model\n"
+        + "1    - Parse original dataset\n"
+        + "2    - Preprocess dataset and save to database\n"
+        + "3    - Identify aspects using FastText and filter dataset\n"
+        + "4    - Train Logistic Regression model\n"
+        + "5    - Train LinearSVC model\n"
+        + "6    - Train Transformer-based model\n"
+        + "7    - Predict sentiments using Logistic Regression model\n"
     )
     option: str = input("Enter your option: ")
     if option == "1":
         parse_json_dataset(DATASET)
     elif option == "2":
-        limit: int = 0
-        try:
-            limit = int(input("enter limit (default: 0): "))
-        except ValueError:
-            limit = 0
-        except EOFError:
-            sys.exit()
-        create_processed_excel_files(limit)
+        create_preprocessed_excel_files_and_save_to_db()
     elif option == "3":
-        load_pre_processed_dataset()
+        generate_similarity_scores_labels_and_filter()
     elif option == "4":
-        df: DataFrame = load_pre_processed_dataset()
-        dump_dataframe_to_sqlite(df)
-    elif option == "5":
-        df: DataFrame = load_dataframe_from_database()
-        print(df.index)
-        print(df.info())
-        print(df.describe())
-    elif option == "6":
-        fast_text_model_trainer()
-    elif option == "7":
-        generate_similarity_scores_and_labels()
-    elif option == "8":
-        find_most_common_aspect_combination()
-    elif option == "9":
         logistic_regression_trainer()
-    elif option == "10":
+    elif option == "5":
+        linear_svc_trainer()
+    elif option == "6":
         transformer_based_trainer()
+    elif option == "7":
+        user_input = input("Enter beer review: ")
+        predict_sentiments_using_logistic_regression(user_input)
     else:
         print("invalid option. Exiting...")
         sys.exit()
