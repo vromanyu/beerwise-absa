@@ -100,7 +100,6 @@ def rating_to_sentiment(rating: float) -> int:
 
 
 def find_most_common_aspect_combination(df: pd.DataFrame) -> None:
-    df = load_dataframe_from_database()
     aspects_mentioned = [
         "appearance_mentioned",
         "aroma_mentioned",
@@ -140,4 +139,4 @@ def find_most_common_aspect_combination(df: pd.DataFrame) -> None:
     df_final = df_filtered[keep_columns].copy()
 
     dump_dataframe_to_sqlite(df_final, is_target=True)
-    save_most_common_aspects()
+    save_most_common_aspects(aspect_names)
