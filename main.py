@@ -1,15 +1,15 @@
 import sys
 
 
-from modules.models.linear_svc import linear_svc_trainer
-from modules.models.logistic_regression import logistic_regression_trainer
-from modules.models.transformer_based import transformer_based_trainer
+from modules.algorithms.linear_svc import linear_svc_trainer
+from modules.algorithms.logistic_regression import logistic_regression_trainer
+from modules.algorithms.transformer_based import transformer_based_trainer
 from modules.processing.processor import (
     create_preprocessed_excel_files_and_save_to_db,
     parse_json_dataset,
     DATASET,
 )
-from modules.models.fast_text_training import (
+from modules.algorithms.fast_text_training import (
     generate_similarity_scores_labels_and_filter,
 )
 from modules.utils.utilities import (
