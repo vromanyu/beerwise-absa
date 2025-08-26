@@ -359,7 +359,7 @@ def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=5, batch_size=32):
         get_optimizer_grouped_parameters(model, base_lr=2e-5), eps=1e-8
     )
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
-        optimizer, mode="min", factor=0.5, patience=1, verbose=True, min_lr=1e-7
+        optimizer, mode="min", factor=0.5, patience=1, min_lr=1e-7
     )
 
     best_f1 = 0.0
