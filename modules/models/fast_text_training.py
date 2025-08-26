@@ -14,20 +14,20 @@ from modules.utils.utilities import (
     save_most_common_aspects,
 )
 
-LOGGER: Logger = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
-MODELS_LOCATION: str = "./models"
-FULL_MODEL_NAME: str = "fast_text_for_absa.bin"
-NUMBER_OF_CORES: int = multiprocessing.cpu_count()
-SIMILARITY_THRESHOLD: float = 0.33
+MODELS_LOCATION = "./models"
+FULL_MODEL_NAME = "fast_text_for_absa.bin"
+NUMBER_OF_CORES = multiprocessing.cpu_count()
+SIMILARITY_THRESHOLD = 0.33
 
 
 def fast_text_model_trainer() -> None:
-    df: pd.DataFrame = load_dataframe_from_database()
+    df = load_dataframe_from_database()
     LOGGER.info("loading all 'processed_text'")
-    data_words: list[list] = df["processed_text"].to_list()
+    data_words = df["processed_text"].to_list()
     LOGGER.info("initialize model training")
-    fasttext_model: FastText = FastText(
+    fasttext_model = FastText(
         data_words,
         vector_size=100,
         window=5,
@@ -52,13 +52,13 @@ def load_model() -> FastText | None:
 
 
 def generate_similarity_scores_and_labels() -> None:
-    df: pd.DataFrame = load_dataframe_from_database()
+    df = load_dataframe_from_database()
 
     model: FastText | None = load_model()
     if model is None:
         return
 
-    aspects: list[str] = ["appearance", "aroma", "palate", "taste"]
+    aspects = ["appearance", "aroma", "palate", "taste"]
     for aspect in aspects:
         LOGGER.info(f"finding similarity score for aspect: {aspect}")
         df[f"{aspect}_similarity"] = df["processed_text"].apply(
@@ -83,7 +83,7 @@ def generate_similarity_scores_and_labels() -> None:
 
 
 def find_most_common_aspect_combination() -> None:
-    df: pd.DataFrame = load_dataframe_from_database()
+    df = load_dataframe_from_database()
     aspects_mentioned = [
         "appearance_mentioned",
         "aroma_mentioned",
