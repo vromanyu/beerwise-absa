@@ -21,6 +21,10 @@ This project is my thesis on Aspect-Based Sentiment Analysis (ABSA), focusing on
 - **Feature Extraction:** TF-IDF vectorization was used, with extensive tuning of `max_features` and `ngram_range`.
 - **Multi-Output Classification:** A multi-output logistic regression model was trained to predict sentiment for both aspects simultaneously.
 
+### Linear SVC Model
+- The pipeline for the Linear SVC model is similar to the Logistic Regression approach, including upsampling, stratified splitting, TF-IDF vectorization, and multi-output classification.
+- The main difference is the use of LinearSVC as the base estimator, with class weights for handling class imbalance and specific hyperparameters for robust sentiment prediction.
+
 ### Transformer-Based Model
 - **Upsampling & Balancing:** Similar to the logistic regression pipeline, joint labels were created and upsampled for balance.
 - **Splitting:** Stratified splits ensured balanced train, validation, and test sets.
