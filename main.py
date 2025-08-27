@@ -1,16 +1,16 @@
 import sys
 
-
+from modules.algorithms.fast_text_training import (
+    generate_similarity_scores_labels_and_filter,
+)
 from modules.algorithms.linear_svc import linear_svc_trainer
 from modules.algorithms.logistic_regression import logistic_regression_trainer
+from modules.algorithms.naive_bayes import naive_bayes_trainer
 from modules.algorithms.transformer_based import transformer_based_trainer
 from modules.processing.processor import (
     create_preprocessed_excel_files_and_save_to_db,
     parse_json_dataset,
     DATASET,
-)
-from modules.algorithms.fast_text_training import (
-    generate_similarity_scores_labels_and_filter,
 )
 from modules.utils.utilities import (
     predict_sentiments_using_linear_svc,
@@ -26,9 +26,10 @@ def menu():
         + "3    - Identify aspects using FastText and filter dataset\n"
         + "4    - Train Logistic Regression model\n"
         + "5    - Train LinearSVC model\n"
-        + "6    - Train Transformer-based model\n"
-        + "7    - Predict sentiments using Logistic Regression model\n"
-        + "8    - Predict sentiments using LinearSVC model\n"
+        + "6    - Train MultinomialNB model\n"
+        + "7    - Train Transformer-based model\n"
+        + "8    - Predict sentiments using Logistic Regression model\n"
+        + "9    - Predict sentiments using LinearSVC model\n"
     )
     option: str = input("Enter your option: ")
     if option == "1":
@@ -42,11 +43,13 @@ def menu():
     elif option == "5":
         linear_svc_trainer()
     elif option == "6":
-        transformer_based_trainer()
+        naive_bayes_trainer()
     elif option == "7":
+        transformer_based_trainer()
+    elif option == "8":
         user_input = input("Enter beer review: ")
         predict_sentiments_using_logistic_regression(user_input)
-    elif option == "8":
+    elif option == "9":
         user_input = input("Enter beer review: ")
         predict_sentiments_using_linear_svc(user_input)
     else:
