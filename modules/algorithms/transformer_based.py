@@ -371,7 +371,7 @@ def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=5, batch_size=32):
             wait = 0
             torch.save(
                 model.state_dict(),
-                f"{MODELS_LOCATION}/{model_name.replace('/', '_')}.pt",
+                f"{MODELS_LOCATION}/{model_name.replace('/', '_')}/{model_name.replace('/', '_')}.pt",
             )
             LOGGER.info(
                 f"New best model saved with F1: {best_f1:.4f}, Val Loss: {val_loss:.4f}"
@@ -384,7 +384,7 @@ def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=5, batch_size=32):
                 break
 
     model.load_state_dict(
-        torch.load(f"{MODELS_LOCATION}/{model_name.replace('/', '_')}.pt")
+        torch.load(f"{MODELS_LOCATION}/{model_name.replace('/', '_')}/{model_name.replace('/', '_')}.pt")
     )
     evaluate(model, test_loader, device, split="Final Test")
 
