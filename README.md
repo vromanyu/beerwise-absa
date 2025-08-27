@@ -25,6 +25,11 @@ This project is my thesis on Aspect-Based Sentiment Analysis (ABSA), focusing on
 - The pipeline for the Linear SVC model is similar to the Logistic Regression approach, including upsampling, stratified splitting, TF-IDF vectorization, and multi-output classification.
 - The main difference is the use of LinearSVC as the base estimator, with class weights for handling class imbalance and specific hyperparameters for robust sentiment prediction.
 
+### Ridge Classifier Model
+- The pipeline for the Ridge Classifier model is similar to the Logistic Regression and Linear SVC approaches, including upsampling, stratified splitting, TF-IDF vectorization, and multi-output classification.
+- The main difference is the use of RidgeClassifier as the base estimator, which applies L2 regularization and can handle class imbalance using class weights.
+- Ridge Classifier is robust to multicollinearity and can provide good separation of classes, but may not always outperform Logistic Regression or Linear SVC for text data.
+
 ### Multinomial Naive Bayes Model
 - The pipeline for the Multinomial Naive Bayes model is similar to the Logistic Regression and Linear SVC approaches, including upsampling, stratified splitting, TF-IDF vectorization, and multi-output classification.
 - The main difference is the use of MultinomialNB as the base estimator, which is fast to train and simple.
@@ -46,6 +51,7 @@ This project is my thesis on Aspect-Based Sentiment Analysis (ABSA), focusing on
 
 ## Results
 - **Logistic Regression and Linear SVC:** Achieved strong macro F1-scores and balanced performance across all sentiment classes, thanks to upsampling, stratified splitting, and TF-IDF feature extraction. These models effectively captured complex relationships in the data, resulting in good class separation.
+- **Ridge Classifier:** Provided competitive results, with the added benefits of robustness to multicollinearity and the ability to handle class imbalance. However, its performance was generally in line with Logistic Regression and Linear SVC, without significant advantages.
 - **Multinomial Naive Bayes:** Trained very quickly and provided reasonable baseline results, but macro F1-scores were generally lower than those of Logistic Regression and Linear SVC. Limitations in modeling feature interactions and handling class imbalance were reflected in the results.
 - **Transformer-Based Model:** Delivered the highest macro F1-scores and most robust performance, especially for minority classes. Training was accelerated using PyTorch with CUDA, and the model required more computational resources. Custom loss functions and class weights further improved class balance.
 - **General Observation:** Proper preprocessing, aspect identification, and data balancing were critical for achieving balanced and high-performing models across all approaches.

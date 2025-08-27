@@ -124,9 +124,23 @@ def predict_sentiments_using_linear_svc(user_input: str):
     print(f"Appearance: {appearance_sentiment}, Palate: {palate_sentiment}")
 
 
-def predict_sentiment_using_naive_bayes(user_input: str):
+def predict_sentiments_using_naive_bayes(user_input: str):
     vectorizer = joblib.load("./models/naive_bayes/naive_bayes_vectorizer.pkl")
     model = joblib.load("./models/naive_bayes/multioutput_naive_bayes_model.pkl")
+
+    pre_processed_input = handle_pre_processing(user_input, lemmatize=False)
+    X = vectorizer.transform([" ".join(pre_processed_input)])
+    preds = model.predict(X)
+
+    sentiment_map = {0: "negative", 1: "neutral", 2: "positive"}
+    appearance_sentiment = sentiment_map[preds[0][0]]
+    palate_sentiment = sentiment_map[preds[0][1]]
+    print(f"Appearance: {appearance_sentiment}, Palate: {palate_sentiment}")
+
+
+def predict_sentiments_using_ridge_classifier(user_input: str):
+    vectorizer = joblib.load("./models/ridge_classifier/ridge_classifier_vectorizer.pkl")
+    model = joblib.load("./models/ridge_classifier/multioutput_ridge_classifier_model.pkl")
 
     pre_processed_input = handle_pre_processing(user_input, lemmatize=False)
     X = vectorizer.transform([" ".join(pre_processed_input)])
