@@ -13,7 +13,7 @@ from sklearn.utils.class_weight import compute_class_weight
 from torch import nn, optim
 from torch.amp import autocast
 from torch.utils.data import Dataset, DataLoader
-import torch.nn.functional as F
+import torch.nn.functional as f
 from tqdm import tqdm
 from transformers import AutoModel, AutoTokenizer
 
@@ -70,11 +70,17 @@ def prepare_data(df):
     df = upsample_to_match(df, "joint_label")
 
     strat_split = StratifiedShuffleSplit(n_splits=1, test_size=0.15, random_state=42)
+    train_df = None
+    test_df = None
+
     for train_idx, test_idx in strat_split.split(df, df["joint_label"]):
         train_df = df.iloc[train_idx].copy()
         test_df = df.iloc[test_idx].copy()
 
     val_split = StratifiedShuffleSplit(n_splits=1, test_size=0.15, random_state=42)
+    final_train_df = None
+    val_df = None
+
     for train_idx, val_idx in val_split.split(train_df, train_df["joint_label"]):
         final_train_df = train_df.iloc[train_idx].copy()
         val_df = train_df.iloc[val_idx].copy()
@@ -82,7 +88,7 @@ def prepare_data(df):
     return final_train_df, val_df, test_df
 
 
-class ABSA_Dataset(Dataset):
+class BeerDataset(Dataset):
     def __init__(self, dataframe, tokenizer):
         self.texts = dataframe["processed_text"].tolist()
         self.appearance_labels = dataframe["appearance_label"].tolist()
@@ -110,8 +116,8 @@ class ABSA_Dataset(Dataset):
         }
 
 
-class MultiAspectSentimentModel(nn.Module):
-    def __init__(self, model_name="distilbert-base-uncased"):
+class MultiAspectModel(nn.Module):
+    def __init__(self, model_name):
         super().__init__()
         self.bert = AutoModel.from_pretrained(model_name)
         hidden_size = self.bert.config.hidden_size
@@ -155,10 +161,10 @@ class FocalLoss(nn.Module):
                 true_dist = torch.zeros_like(logits)
                 true_dist.fill_(self.label_smoothing / (num_classes - 1))
                 true_dist.scatter_(1, targets.unsqueeze(1), 1.0 - self.label_smoothing)
-            log_probs = F.log_softmax(logits, dim=1)
+            log_probs = f.log_softmax(logits, dim=1)
             ce_loss = -(true_dist * log_probs).sum(dim=1)
         else:
-            ce_loss = F.cross_entropy(logits, targets, reduction="none")
+            ce_loss = f.cross_entropy(logits, targets, reduction="none")
         pt = torch.exp(-ce_loss)
         focal_loss = (1 - pt) ** self.gamma * ce_loss
         if self.alpha is not None:
@@ -306,26 +312,26 @@ def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=5, batch_size=32):
     LOGGER.info(f"Train Palate Label Distribution: {Counter(train_df['palate_label'])}")
 
     train_loader = DataLoader(
-        ABSA_Dataset(train_df, tokenizer),
+        BeerDataset(train_df, tokenizer),
         batch_size=batch_size,
         shuffle=True,
         num_workers=10,
         pin_memory=True,
     )
     val_loader = DataLoader(
-        ABSA_Dataset(val_df, tokenizer),
+        BeerDataset(val_df, tokenizer),
         batch_size=batch_size,
         num_workers=10,
         pin_memory=True,
     )
     test_loader = DataLoader(
-        ABSA_Dataset(test_df, tokenizer),
+        BeerDataset(test_df, tokenizer),
         batch_size=batch_size,
         num_workers=10,
         pin_memory=True,
     )
 
-    model = MultiAspectSentimentModel(model_name).to(device)
+    model = MultiAspectModel(model_name).to(device)
 
     app_weights = compute_class_weights(train_df["appearance_label"].tolist()).to(
         device
