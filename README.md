@@ -25,6 +25,15 @@ This project is my thesis on Aspect-Based Sentiment Analysis (ABSA), focusing on
 - The pipeline for the Linear SVC model is similar to the Logistic Regression approach, including upsampling, stratified splitting, TF-IDF vectorization, and multi-output classification.
 - The main difference is the use of LinearSVC as the base estimator, with class weights for handling class imbalance and specific hyperparameters for robust sentiment prediction.
 
+### Multinomial Naive Bayes Model
+- The pipeline for the Multinomial Naive Bayes model is similar to the Logistic Regression and Linear SVC approaches, including upsampling, stratified splitting, TF-IDF vectorization, and multi-output classification.
+- The main difference is the use of MultinomialNB as the base estimator, which is fast to train and simple.
+- **Limitations:**
+  - Naive Bayes assumes all features are independent given the class label, which is rarely true for text data.
+  - It relies on simple probability estimates, which can limit its effectiveness compared to more flexible models.
+  - Logistic Regression and Linear SVC can model more complex relationships and interactions between features, leading to better separation of classes.
+  - Does not support class weights for handling class imbalance.
+
 ### Transformer-Based Model
 - **Upsampling & Balancing:** Similar to the logistic regression pipeline, joint labels were created and upsampled for balance.
 - **Splitting:** Stratified splits ensured balanced train, validation, and test sets.
