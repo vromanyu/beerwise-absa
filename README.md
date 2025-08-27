@@ -38,6 +38,10 @@ This project is my thesis on Aspect-Based Sentiment Analysis (ABSA), focusing on
 - **Upsampling & Balancing:** Similar to the logistic regression pipeline, joint labels were created and upsampled for balance.
 - **Splitting:** Stratified splits ensured balanced train, validation, and test sets.
 - **Modeling:** A transformer-based neural network (e.g., BERT) was trained to predict aspect sentiments, using custom loss functions and class weights for further balancing.
+- **Hardware Acceleration:** PyTorch was used with the CUDA version to accelerate training of transformer-based models. If CUDA is not available, install PyTorch and torchvision using:
+  ```bash
+  pip3 install torch torchvision
+  ```
 
 ## Results
 Both approaches achieved high macro F1-scores and balanced performance across all sentiment classes, demonstrating the effectiveness of proper preprocessing, aspect identification, and data balancing techniques.
