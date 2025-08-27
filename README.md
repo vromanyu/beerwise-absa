@@ -45,7 +45,10 @@ This project is my thesis on Aspect-Based Sentiment Analysis (ABSA), focusing on
   ```
 
 ## Results
-Both approaches achieved high macro F1-scores and balanced performance across all sentiment classes, demonstrating the effectiveness of proper preprocessing, aspect identification, and data balancing techniques.
+- **Logistic Regression and Linear SVC:** Achieved strong macro F1-scores and balanced performance across all sentiment classes, thanks to upsampling, stratified splitting, and TF-IDF feature extraction. These models effectively captured complex relationships in the data, resulting in good class separation.
+- **Multinomial Naive Bayes:** Trained very quickly and provided reasonable baseline results, but macro F1-scores were generally lower than those of Logistic Regression and Linear SVC. Limitations in modeling feature interactions and handling class imbalance were reflected in the results.
+- **Transformer-Based Model:** Delivered the highest macro F1-scores and most robust performance, especially for minority classes. Training was accelerated using PyTorch with CUDA, and the model required more computational resources. Custom loss functions and class weights further improved class balance.
+- **General Observation:** Proper preprocessing, aspect identification, and data balancing were critical for achieving balanced and high-performing models across all approaches.
 
 ---
 
