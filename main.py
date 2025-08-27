@@ -16,7 +16,7 @@ from modules.processing.processor import (
 from modules.utils.utilities import (
     predict_sentiments_using_linear_svc,
     predict_sentiments_using_logistic_regression,
-    predict_sentiment_using_naive_bayes, predict_sentiments_using_ridge_classifier
+    predict_sentiments_using_naive_bayes, predict_sentiments_using_ridge_classifier
 )
 
 
@@ -61,7 +61,7 @@ def menu():
         predict_sentiments_using_linear_svc(user_input)
     elif option == "11":
         user_input = input("Enter beer review: ")
-        predict_sentiment_using_naive_bayes(user_input)
+        predict_sentiments_using_naive_bayes(user_input)
     elif option == "12":
         user_input = input("Enter beer review: ")
         predict_sentiments_using_ridge_classifier(user_input)
