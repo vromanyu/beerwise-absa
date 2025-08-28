@@ -8,6 +8,6 @@ pandas==2.3.2
 pyspellchecker==0.8.3
 scikit_learn==1.7.1
 SQLAlchemy==2.0.43
-torch==2.8.0+cu129
+#torch==2.8.0+cu129
 tqdm==4.67.1
 transformers==4.55.3
