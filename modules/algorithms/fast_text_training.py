@@ -7,11 +7,6 @@ import numpy as np
 import pandas as pd
 from gensim.models import FastText
 
-from modules.utils.utilities import (
-    dump_dataframe_to_sqlite,
-    load_dataframe_from_database,
-    save_most_common_aspects,
-)
 
 LOGGER = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
@@ -22,6 +17,8 @@ SIMILARITY_THRESHOLD = 0.33
 
 
 def fast_text_model_trainer() -> None:
+    from modules.utils.utilities import load_dataframe_from_database
+
     df = load_dataframe_from_database()
     LOGGER.info("loading all 'processed_text'")
     data_words = df["processed_text"].to_list()
@@ -51,6 +48,8 @@ def load_model() -> FastText | None:
 
 
 def generate_similarity_scores_labels_and_filter() -> None:
+    from modules.utils.utilities import load_dataframe_from_database
+
     df = load_dataframe_from_database()
 
     model = load_model()
@@ -137,6 +136,11 @@ def find_most_common_aspect_combination(df: pd.DataFrame) -> None:
         )
     keep_columns = base_columns + aspect_cols
     df_final = df_filtered[keep_columns].copy()
+
+    from modules.utils.utilities import (
+        dump_dataframe_to_sqlite,
+        save_most_common_aspects,
+    )
 
     dump_dataframe_to_sqlite(df_final, is_target=True)
     save_most_common_aspects(aspect_names)

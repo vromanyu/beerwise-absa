@@ -17,7 +17,6 @@ import torch.nn.functional as f
 from tqdm import tqdm
 from transformers import AutoModel, AutoTokenizer
 
-from modules.utils.utilities import load_dataframe_from_database
 
 MODELS_LOCATION = "./models/transformer"
 
@@ -390,6 +389,7 @@ def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=5, batch_size=32):
 
 
 def transformer_based_trainer(model_option: int = 1):
+    from modules.utils.utilities import load_dataframe_from_database
     model = "prajjwal1/bert-mini" if model_option == 1 else "distilbert-base-uncased"
     set_seed()
     df = load_dataframe_from_database(is_target=True)
