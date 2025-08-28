@@ -16,7 +16,8 @@ from modules.processing.processor import (
 from modules.utils.utilities import (
     predict_sentiments_using_linear_svc,
     predict_sentiments_using_logistic_regression,
-    predict_sentiments_using_naive_bayes, predict_sentiments_using_ridge_classifier
+    predict_sentiments_using_naive_bayes, predict_sentiments_using_ridge_classifier,
+    predict_sentiments_using_bert_mini
 )
 
 
@@ -35,6 +36,7 @@ def menu():
         + "10   - Predict sentiments using LinearSVC model\n"
         + "11   - Predict sentiments using Naive Bayes model\n"
         + "12   - Predict sentiments using Ridge Classifier model\n"
+        + "13   - Predict sentiments using Bert-mini model\n"
     )
     option: str = input("Enter your option: ")
     if option == "1":
@@ -72,6 +74,9 @@ def menu():
     elif option == "12":
         user_input = input("Enter beer review: ")
         predict_sentiments_using_ridge_classifier(user_input)
+    elif option == "13":
+        user_input = input("Enter beer review: ")
+        predict_sentiments_using_bert_mini(user_input)
     else:
         print("invalid option. Exiting...")
         sys.exit()

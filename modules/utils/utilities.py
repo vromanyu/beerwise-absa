@@ -1,6 +1,5 @@
 import joblib
 
-
 import ast
 
 from sqlalchemy import Engine, create_engine
@@ -10,6 +9,9 @@ import os
 import pandas as pd
 
 from modules.processing.preprocessing import handle_pre_processing
+import torch
+from transformers import AutoTokenizer
+from modules.algorithms.transformer_based import MultiAspectModel
 
 PRE_PROCESSED_PREFIX = "dataset_portion_pre_processed"
 DATASET_LOCATION = "dataset/"
@@ -149,4 +151,34 @@ def predict_sentiments_using_ridge_classifier(user_input: str):
     sentiment_map = {0: "negative", 1: "neutral", 2: "positive"}
     appearance_sentiment = sentiment_map[preds[0][0]]
     palate_sentiment = sentiment_map[preds[0][1]]
+    print(f"Appearance: {appearance_sentiment}, Palate: {palate_sentiment}")
+
+
+def predict_sentiments_using_bert_mini(user_input: str):
+    model_name = "prajjwal1/bert-mini"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model_path = "./models/transformer/prajjwal1_bert-mini/prajjwal1_bert-mini.pt"
+
+    model = MultiAspectModel(model_name)
+    model.load_state_dict(torch.load(model_path, map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu")))
+    model.eval()
+
+    pre_processed_input = handle_pre_processing(user_input, lemmatize=False)
+    text = " ".join(pre_processed_input)
+    encoding = tokenizer(
+        text,
+        truncation=True,
+        padding="max_length",
+        max_length=256,
+        return_tensors="pt",
+    )
+    with torch.no_grad():
+        app_logits, pal_logits = model(
+            encoding["input_ids"], encoding["attention_mask"]
+        )
+        app_pred = torch.argmax(app_logits, dim=1).item()
+        pal_pred = torch.argmax(pal_logits, dim=1).item()
+    sentiment_map = {0: "negative", 1: "neutral", 2: "positive"}
+    appearance_sentiment = sentiment_map[app_pred]
+    palate_sentiment = sentiment_map[pal_pred]
     print(f"Appearance: {appearance_sentiment}, Palate: {palate_sentiment}")
