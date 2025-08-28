@@ -2,6 +2,7 @@
   <dictionary name="project">
     <words>
       <w>beeradvocate</w>
+      <w>distilbert</w>
       <w>nfkd</w>
       <w>prajjwal</w>
       <w>preds</w>
