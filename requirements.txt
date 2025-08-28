@@ -11,3 +11,4 @@ SQLAlchemy==2.0.43
 #torch==2.8.0+cu129
 tqdm==4.67.1
 transformers==4.55.3
+hf-xet==1.1.8
