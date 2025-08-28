@@ -52,7 +52,14 @@ def menu():
     elif option == "7":
         ridge_classifier_trainer()
     elif option == "8":
-        transformer_based_trainer()
+        selected_model = 1
+        try:
+            selected_model = int(input("1 train bert-mini, 2 train distilbert: "))
+        except ValueError:
+            selected_model = 1
+        except EOFError:
+            sys.exit()
+        transformer_based_trainer(selected_model)
     elif option == "9":
         user_input = input("Enter beer review: ")
         predict_sentiments_using_logistic_regression(user_input)

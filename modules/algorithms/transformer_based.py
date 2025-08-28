@@ -389,8 +389,8 @@ def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=5, batch_size=32):
     evaluate(model, test_loader, device, split="Final Test")
 
 
-def transformer_based_trainer():
-    model = "prajjwal1/bert-mini"
+def transformer_based_trainer(model_option: int = 1):
+    model = "prajjwal1/bert-mini" if model_option == 1 else "distilbert-base-uncased"
     set_seed()
     df = load_dataframe_from_database(is_target=True)
     run_pipeline(df, model_name=model)
