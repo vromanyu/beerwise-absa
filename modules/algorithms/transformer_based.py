@@ -395,9 +395,97 @@ def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=10, batch_size=32)
     evaluate(model, test_loader, device, split="Final Test")
 
 
+def resume_transformer_training(df, model_name, checkpoint_path, start_epoch=0, epochs=10, batch_size=32):
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    scaler = torch.amp.GradScaler("cuda" if torch.cuda.is_available() else "cpu")
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+
+    train_df, val_df, test_df = prepare_data(df)
+
+    train_loader = DataLoader(
+        BeerDataset(train_df, tokenizer),
+        batch_size=batch_size,
+        shuffle=True,
+        num_workers=10,
+        pin_memory=True,
+    )
+    val_loader = DataLoader(
+        BeerDataset(val_df, tokenizer),
+        batch_size=batch_size,
+        num_workers=10,
+        pin_memory=True,
+    )
+    test_loader = DataLoader(
+        BeerDataset(test_df, tokenizer),
+        batch_size=batch_size,
+        num_workers=10,
+        pin_memory=True,
+    )
+
+    model = MultiAspectModel(model_name).to(device)
+    model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+
+    app_weights = compute_class_weights(train_df["appearance_label"].tolist()).to(device)
+    pal_weights = compute_class_weights(train_df["palate_label"].tolist()).to(device)
+
+    loss_fn_app = FocalLoss(alpha=app_weights, gamma=2, label_smoothing=0.15)
+    loss_fn_pal = FocalLoss(alpha=pal_weights, gamma=2, label_smoothing=0.15)
+
+    optimizer = optim.AdamW(
+        get_optimizer_grouped_parameters(model, base_lr=2e-5), eps=1e-8
+    )
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+        optimizer, mode="min", factor=0.5, patience=1, min_lr=1e-7
+    )
+
+    best_f1 = 0.0
+    best_val_loss = float("inf")
+    patience, wait = 2, 0
+
+    save_dir = f"{MODELS_LOCATION}/{model_name.replace('/', '_')}"
+    os.makedirs(save_dir, exist_ok=True)
+
+    for epoch in range(start_epoch, epochs):
+        LOGGER.info(f"Epoch {epoch + 1}/{epochs}")
+        train_loss = train_epoch(
+            model, train_loader, optimizer, device, loss_fn_app, loss_fn_pal, scaler
+        )
+        LOGGER.info(f"Training Loss: {train_loss:.4f}")
+
+        val_f1 = evaluate(model, val_loader, device, split="Validation")
+        val_loss = compute_val_loss(model, val_loader, device, loss_fn_app, loss_fn_pal)
+        scheduler.step(val_loss)
+
+        if val_f1 > best_f1 or val_loss < best_val_loss:
+            best_f1 = val_f1
+            best_val_loss = val_loss
+            wait = 0
+            torch.save(
+                model.state_dict(),
+                f"{save_dir}/{model_name.replace('/', '_')}.pt",
+            )
+            LOGGER.info(
+                f"New best model saved with F1: {best_f1:.4f}, Val Loss: {val_loss:.4f}"
+            )
+        else:
+            wait += 1
+            LOGGER.info(f"No improvement. Patience: {wait}/{patience}")
+
+    model.load_state_dict(
+        torch.load(f"{MODELS_LOCATION}/{model_name.replace('/', '_')}/{model_name.replace('/', '_')}.pt")
+    )
+    evaluate(model, test_loader, device, split="Final Test")
+
 def transformer_based_trainer(model_option: int = 1):
     from modules.utils.utilities import load_dataframe_from_database
     model = "prajjwal1/bert-mini" if model_option == 1 else "distilbert-base-uncased"
     set_seed()
     df = load_dataframe_from_database(is_target=True)
     run_pipeline(df, model_name=model)
+
+def resume_training():
+    from modules.utils.utilities import load_dataframe_from_database
+    model = "distilbert-base-uncased"
+    set_seed()
+    df = load_dataframe_from_database(is_target=True)
+    resume_transformer_training(df, model_name=model, checkpoint_path="./models/transformer/distilbert-base-uncased/distilbert-base-uncased.pt", start_epoch=6, epochs=10)
