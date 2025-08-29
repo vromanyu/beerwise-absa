@@ -271,7 +271,13 @@ def get_optimizer_grouped_parameters(model, base_lr=2e-5, lr_decay=0.95):
     no_decay = ["bias", "LayerNorm.weight"]
     optimizer_grouped_parameters = []
 
-    layers = [model.bert.embeddings] + list(model.bert.encoder.layer)
+    if hasattr(model.bert, "encoder") and hasattr(model.bert.encoder, "layer"):
+        layers = [model.bert.embeddings] + list(model.bert.encoder.layer)
+    elif hasattr(model.bert, "transformer") and hasattr(model.bert.transformer, "layer"):
+        layers = [model.bert.embeddings] + list(model.bert.transformer.layer)
+    else:
+        raise AttributeError("Unsupported transformer model type for optimizer grouping.")
+
     num_layers = len(layers)
 
     for i, layer in enumerate(layers):
@@ -298,9 +304,9 @@ def get_optimizer_grouped_parameters(model, base_lr=2e-5, lr_decay=0.95):
     return optimizer_grouped_parameters
 
 
-def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=5, batch_size=32):
+def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=10, batch_size=32):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    scaler = torch.amp.GradScaler("cuda")  # Initialize once for mixed precision
+    scaler = torch.amp.GradScaler("cuda")
     tokenizer = AutoTokenizer.from_pretrained(model_name)
 
     train_df, val_df, test_df = prepare_data(df)
@@ -351,7 +357,8 @@ def run_pipeline(df, model_name="prajjwal1/bert-mini", epochs=5, batch_size=32):
     best_val_loss = float("inf")
     patience, wait = 2, 0
 
-    os.makedirs(os.path.dirname(MODELS_LOCATION), exist_ok=True)
+    save_dir = f"{MODELS_LOCATION}/{model_name.replace('/', '_')}"
+    os.makedirs(save_dir, exist_ok=True)
 
     for epoch in range(epochs):
         LOGGER.info(f"Epoch {epoch + 1}/{epochs}")
