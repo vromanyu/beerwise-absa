@@ -7,7 +7,7 @@ from modules.algorithms.linear_svc import linear_svc_trainer
 from modules.algorithms.logistic_regression import logistic_regression_trainer
 from modules.algorithms.naive_bayes import naive_bayes_trainer
 from modules.algorithms.ridge_classifier import ridge_classifier_trainer
-from modules.algorithms.transformer_based import transformer_based_trainer
+from modules.algorithms.transformer_based import transformer_based_trainer, resume_training
 from modules.processing.processor import (
     create_preprocessed_excel_files_and_save_to_db,
     parse_json_dataset,
@@ -17,7 +17,7 @@ from modules.utils.utilities import (
     predict_sentiments_using_linear_svc,
     predict_sentiments_using_logistic_regression,
     predict_sentiments_using_naive_bayes, predict_sentiments_using_ridge_classifier,
-    predict_sentiments_using_bert_mini
+    predict_sentiments_using_distilbert
 )
 
 
@@ -37,6 +37,7 @@ def menu():
         + "11   - Predict sentiments using Naive Bayes model\n"
         + "12   - Predict sentiments using Ridge Classifier model\n"
         + "13   - Predict sentiments using Bert-mini model\n"
+        + "14   - Predict sentiments using Distilbert model\n"
     )
     option: str = input("Enter your option: ")
     if option == "1":
@@ -76,11 +77,13 @@ def menu():
         predict_sentiments_using_ridge_classifier(user_input)
     elif option == "13":
         user_input = input("Enter beer review: ")
-        predict_sentiments_using_bert_mini(user_input)
+        predict_sentiments_using_distilbert(user_input)
+    elif option == "14":
+        user_input = input("Enter beer review: ")
+        predict_sentiments_using_distilbert(user_input)
     else:
         print("invalid option. Exiting...")
         sys.exit()
-
 
 def main():
     menu()

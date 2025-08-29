@@ -182,3 +182,32 @@ def predict_sentiments_using_bert_mini(user_input: str):
     appearance_sentiment = sentiment_map[app_pred]
     palate_sentiment = sentiment_map[pal_pred]
     print(f"Appearance: {appearance_sentiment}, Palate: {palate_sentiment}")
+
+def predict_sentiments_using_distilbert(user_input: str):
+    model_name = "distilbert-base-uncased"
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model_path = "./models/transformer/distilbert-base-uncased/distilbert-base-uncased.pt"
+
+    model = MultiAspectModel(model_name)
+    model.load_state_dict(torch.load(model_path, map_location=torch.device("cuda" if torch.cuda.is_available() else "cpu")))
+    model.eval()
+
+    pre_processed_input = handle_pre_processing(user_input, lemmatize=False)
+    text = " ".join(pre_processed_input)
+    encoding = tokenizer(
+        text,
+        truncation=True,
+        padding="max_length",
+        max_length=256,
+        return_tensors="pt",
+    )
+    with torch.no_grad():
+        app_logits, pal_logits = model(
+            encoding["input_ids"], encoding["attention_mask"]
+        )
+        app_pred = torch.argmax(app_logits, dim=1).item()
+        pal_pred = torch.argmax(pal_logits, dim=1).item()
+    sentiment_map = {0: "negative", 1: "neutral", 2: "positive"}
+    appearance_sentiment = sentiment_map[app_pred]
+    palate_sentiment = sentiment_map[pal_pred]
+    print(f"Appearance: {appearance_sentiment}, Palate: {palate_sentiment}")
