@@ -9,6 +9,8 @@ This project is my thesis on Aspect-Based Sentiment Analysis (ABSA), focusing on
 	```bash
 	git lfs pull
 	```
+- **Model Storage:** All trained models (including transformer, logistic regression, linear SVC, ridge classifier, and naive bayes) are stored under the `models` folder and tracked using **git LFS**. 
+  **Note:** Running `git lfs pull` once will download both datasets and models; you do not need to run it twice.
 - **Preprocessing:** All reviews were preprocessed (tokenization, cleaning, etc.) to ensure high-quality input for modeling.
 - **Aspect Identification:** Using the FastText model, we identified which aspects were mentioned in each review. Since each review had scores for appearance, aroma, palate, and taste, we assumed these were the aspects discussed.
 - **Aspect Pair Selection:** We found that the most frequently mentioned aspect pair was **(appearance, palate)**. We filtered the dataset to include only reviews where both aspects were clearly mentioned.
