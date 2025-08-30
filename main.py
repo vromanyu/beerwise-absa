@@ -7,7 +7,7 @@ from modules.algorithms.linear_svc import linear_svc_trainer
 from modules.algorithms.logistic_regression import logistic_regression_trainer
 from modules.algorithms.naive_bayes import naive_bayes_trainer
 from modules.algorithms.ridge_classifier import ridge_classifier_trainer
-from modules.algorithms.transformer_based import transformer_based_trainer, resume_training
+from modules.algorithms.transformer_based import transformer_based_trainer
 from modules.processing.processor import (
     create_preprocessed_excel_files_and_save_to_db,
     parse_json_dataset,
