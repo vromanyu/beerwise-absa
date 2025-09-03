@@ -1,5 +1,7 @@
 # Aspect-Based Sentiment Analysis on Beer Reviews
 
+> **Supported Python Version:** This project requires **Python 3.12**.
+
 This project is my thesis on Aspect-Based Sentiment Analysis (ABSA), focusing on beer reviews. Each review in our dataset includes scores for four aspects: **appearance**, **aroma**, **palate**, and **taste**.
 
 
