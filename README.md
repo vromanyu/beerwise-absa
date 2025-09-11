@@ -68,4 +68,4 @@ This project is my thesis on Aspect-Based Sentiment Analysis (ABSA), focusing on
 
 ---
 
-**Keywords:** Aspect-Based Sentiment Analysis, Beer Reviews, FastText, Logistic Regression, Transformer, Data Balancing, Multi-Output Classification
+**Keywords:** Sentiment Analysis, Aspect-Based Sentiment Analysis, Beer Reviews, Machine Learning, Classical Machine Learning Models, Transformer Models, Text Preprocessing, Aspect Extraction, Sentiment Prediction, Hyperparameter Tuning, Data Balancing, Evaluation Metrics, F1-Score
