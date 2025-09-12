@@ -1,9 +1,9 @@
 ﻿import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 import matplotlib.style as style
-import seaborn as sns
-import pandas as pd
 import numpy as np
+import pandas as pd
+import seaborn as sns
+
 
 def plot_models_f1_average():
     models = [
@@ -14,7 +14,7 @@ def plot_models_f1_average():
         "BERT-mini",
         "DistilBERT"]
 
-    f1_scores = [0.7905, 0.8905, 0.8929, 0.8804, 0.8766, 0.9134 ]
+    f1_scores = [0.7905, 0.8905, 0.8929, 0.8804, 0.8766, 0.9134]
 
     plt.figure(figsize=(10, 6))
     bars = plt.bar(models, f1_scores, color='skyblue', edgecolor='black')
@@ -32,15 +32,16 @@ def plot_models_f1_average():
     plt.tight_layout()
     plt.show()
 
+
 def generate_heatmap():
     data = {
         "Multinomial Naive Bayes": [0.7941, 0.7869],
-                "Logistic Regression": [0.8878, 0.8932],
-                "Linear SVC": [0.8878, 0.8981],
-                "Ridge Classifier": [0.8848, 0.8760],
-                "BERT-mini": [0.8848, 0.8683],
-                "DistilBERT": [0.9219, 0.9048]
-        }
+        "Logistic Regression": [0.8878, 0.8932],
+        "Linear SVC": [0.8878, 0.8981],
+        "Ridge Classifier": [0.8848, 0.8760],
+        "BERT-mini": [0.8848, 0.8683],
+        "DistilBERT": [0.9219, 0.9048]
+    }
 
     aspects = ["Εμφάνιση", "Γευστικό προφίλ"]
 
@@ -55,8 +56,8 @@ def generate_heatmap():
     plt.tight_layout()
     plt.show()
 
+
 def models_line_chart():
-        # Εφαρμογή αισθητικού στυλ
     style.use('seaborn-v0_8')
 
     models = ['Multinomial NB', "Logistic Regression", "Linear SVC", 'Ridge Classifier', 'BERT-mini', 'DistilBERT']
@@ -78,8 +79,8 @@ def models_line_chart():
     plt.tight_layout()
     plt.show()
 
-def model_performance_based_on_time():
 
+def model_performance_based_on_time():
     models = [
         'Multinomial NB',
         'Logistic Regression',
@@ -109,11 +110,13 @@ def model_performance_based_on_time():
     plt.tight_layout()
     plt.show()
 
+
 def grouped_statistics_per_aspect_and_category():
     plt.style.use('seaborn-v0_8')
 
     categories = ['Negative', 'Neutral', 'Positive']
-    models = ['Multinomial Naive Bayes', 'Logistic Regression', 'Linear SVC', 'Ridge Classifier', 'BERT-mini', 'DistilBERT']
+    models = ['Multinomial Naive Bayes', 'Logistic Regression', 'Linear SVC', 'Ridge Classifier', 'BERT-mini',
+              'DistilBERT']
 
     appearance_scores = {
         'Multinomial Naive Bayes': [0.91, 0.72, 0.76],
@@ -122,7 +125,7 @@ def grouped_statistics_per_aspect_and_category():
         'Ridge Classifier': [0.99, 0.83, 0.83],
         'BERT-mini': [0.99, 0.82, 0.82],
         'DistilBERT': [1, 0.88, 0.88]
-        }
+    }
     palate_scores = {
         'Multinomial Naive Bayes': [0.92, 0.74, 0.71],
         'Logistic Regression': [0.98, 0.84, 0.85],
@@ -130,7 +133,8 @@ def grouped_statistics_per_aspect_and_category():
         'Ridge Classifier': [0.98, 0.83, 0.85],
         'BERT-mini': [0.98, 0.79, 0.83],
         'DistilBERT': [0.99, 0.86, 0.87]
-        }
+    }
+
     def plot_grouped_bar(data, title):
         x = np.arange(len(categories))
         width = 0.13
@@ -148,7 +152,7 @@ def grouped_statistics_per_aspect_and_category():
         ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
         plt.tight_layout()
         plt.show()
+
     plot_grouped_bar(appearance_scores, 'Απόδοση μοντέλων στην όψη \"εμφάνιση\" (F1-score)')
     plot_grouped_bar(palate_scores, 'Απόδοση μοντέλων στην όψη \"γευστικό προφίλ\" (F1-score)')
 
-plot_models_f1_average()
