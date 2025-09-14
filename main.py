@@ -16,8 +16,9 @@ from modules.processing.processor import (
 from modules.utils.utilities import (
     predict_sentiments_using_linear_svc,
     predict_sentiments_using_logistic_regression,
-    predict_sentiments_using_naive_bayes, predict_sentiments_using_ridge_classifier,
-    predict_sentiments_using_distilbert
+    predict_sentiments_using_naive_bayes,
+    predict_sentiments_using_ridge_classifier,
+    predict_sentiments_using_distilbert,
 )
 
 
@@ -84,6 +85,7 @@ def menu():
     else:
         print("invalid option. Exiting...")
         sys.exit()
+
 
 def main():
     menu()
